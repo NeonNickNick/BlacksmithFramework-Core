@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blacksmith Online Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/server.css">
+</head>
+<body class="auth-only">
+    <div class="app-shell">
+        <div class="background-orbit orbit-a"></div>
+        <div class="background-orbit orbit-b"></div>
+
+        <main class="layout auth-layout">
+            <section class="panel auth-screen">
+                <div class="auth-screen-grid">
+                    <div class="auth-brand">
+                        <p class="eyebrow">Blacksmith Framework</p>
+                        <h1>Blacksmith Online Arena</h1>
+                        <p class="auth-copy">Log in first, then the battle deck opens. Matchmaking, turn input, and battle state all stay on the live server.</p>
+                        <div class="auth-notes">
+                            <div class="meta-card">
+                                <span class="meta-label">Transport</span>
+                                <strong>WebSocket Match</strong>
+                            </div>
+                            <div class="meta-card">
+                                <span class="meta-label">Timeout Rule</span>
+                                <strong id="timeoutRuleDisplay">30s, 3 strikes</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-form-block">
+                        <div class="panel-heading compact auth-heading">
+                            <div>
+                                <p class="eyebrow">Account</p>
+                                <h2>Login Or Register</h2>
+                            </div>
+                        </div>
+
+                        <label class="field">
+                            <span>Username</span>
+                            <input id="usernameInput" placeholder="player_one" autocomplete="username" />
+                        </label>
+                        <label class="field">
+                            <span>Password</span>
+                            <input id="passwordInput" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
+                        </label>
+                        <div class="button-row auth-buttons">
+                            <button id="loginBtn" class="primary-btn">Login</button>
+                            <button id="registerBtn" class="ghost-btn">Register</button>
+                        </div>
+                        <p class="hint" id="authHint">If you do not have an account yet, register here and enter the arena immediately.</p>
+                        <div class="auth-status-box">
+                            <span class="status-pill" id="connectionState">Disconnected</span>
+                            <div class="result-detail" id="authStatusText">Register or log in to connect to the arena.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/state.js"></script>
+    <script src="js/net.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

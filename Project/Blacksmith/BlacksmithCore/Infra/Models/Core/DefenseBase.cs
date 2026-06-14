@@ -1,0 +1,15 @@
+using BlacksmithCore.Infra.Models.Entites;
+namespace BlacksmithCore.Infra.Models.Core
+{
+    public abstract class DefenseBase : IDefenseWork
+    {
+        public Community? Owner { get; set; }
+        public abstract DefenseType.CEValue Type { get; set; }
+        public abstract int Power { get; set; }
+        public abstract bool CanMerge { get; set; }
+        public abstract bool IsDead { get; set; }
+        public abstract void Merge(DefenseBase addition);
+        public abstract (int, int) Work(Body source, Body owner, int attack, AttackType.CEValue type);
+        public abstract void Update();
+    }
+}
