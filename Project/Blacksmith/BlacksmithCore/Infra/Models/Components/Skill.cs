@@ -1,7 +1,9 @@
 using BlacksmithCore.Infra.DSL;
+using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.BuiltInProfessions;
 using ClapInfra.ClapModels.Components;
+using ClapInfra.ClapModels.Entities;
 using ClapInfra.ClapUnit;
 
 namespace BlacksmithCore.Infra.Models.Components
@@ -13,13 +15,27 @@ namespace BlacksmithCore.Infra.Models.Components
         {
         }
     }
-    public class Skill : ClapSkill<PackageContainer, ISkillPackage, ISkillContext, IDSLSourceFile>
+    public class Skill :
+        ClapSkill<PackageContainer, ISkillPackage, ISkillContext, IDSLSourceFile>,
+        IComponent<Body>
     {
         protected override List<PackageContainer> _packages { get; set; } = new() { new(new Common()) };
         public bool HaveProfession => _packages.Count > 1;
-        public void Reset()
+        public Body Body { get; }
+        public Skill(Body body)
         {
-            _packages = new() { new(new Common()) };
+            Body = body;
+        }
+        public void Copy(Skill origin)
+        {
+            _packages.Clear();
+            foreach(var pc in origin._packages)
+            {
+                var p = (ISkillPackage)Activator.CreateInstance(pc.SkillPackage.GetType())!;
+                p.AvailableSkillNames = new HashSet<string>(pc.SkillPackage.AvailableSkillNames);
+                var n = new PackageContainer(p);
+                _packages.Add(n);//权宜之计
+            }
         }
         public override SkillDeclareResult TryDeclare(string skillName, ISkillContext sc)
         {

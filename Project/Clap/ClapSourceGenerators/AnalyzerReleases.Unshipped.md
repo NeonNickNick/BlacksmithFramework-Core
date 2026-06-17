@@ -7,3 +7,6 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 CLAP001 | ClapSkillRegistration | Error | SkillRegistrationGenerator
 CLAP002 | ClapSkillRegistration | Error | SkillRegistrationGenerator
+CLAP003 | ClapAnalyzerRegistration | Error | AnalyzersRegistrationGenerator
+CLAP004 | ClapAnalyzerRegistration | Error | AnalyzersRegistrationGenerator
+CLAP005 | ClapAnalyzerRegistration | Warning | AnalyzersRegistrationGenerator

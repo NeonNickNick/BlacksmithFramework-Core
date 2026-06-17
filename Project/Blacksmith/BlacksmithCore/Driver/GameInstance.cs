@@ -63,7 +63,6 @@ namespace BlacksmithCore.Driver
             {
                 throw new ArgumentNullException(nameof(instance));
             }
-            instance.Reset();
             _pool.Add(instance);
         }
 
@@ -85,13 +84,13 @@ namespace BlacksmithCore.Driver
             var count = Interlocked.Increment(ref _rentCount);
             if (count % DiagnosticInterval == 0)
             {
-               // Console.WriteLine($"[GameInstancePool] Rent 累计={count}, 池中实例={_pool.Count}");
+                // Console.WriteLine($"[GameInstancePool] Rent 累计={count}, 池中实例={_pool.Count}");
             }
             return instance;
         }
     }
 
-    public class GameInstance : ISudoOperations
+    public partial class GameInstance : ISudoOperations
     {
         public Community Player { get; private set; }
         public Community Enemy { get; private set; }
@@ -100,41 +99,22 @@ namespace BlacksmithCore.Driver
         public GameMetadata Metadata { get; private set; }
         public GameInstance()
         {
-            Player = new();
-            Enemy = new();
+            Player = new(true);
+            Enemy = new(false);
             Judger = new(Player, Enemy);
             History = new();
             Metadata = new();
-        }
-        public void Reset()
-        {
-            Player.Reset();
-            Enemy.Reset();
-            Judger.Reset();
-            History.Reset();
-            Metadata.Reset();
         }
         public bool IsPlayer(Community community)
         {
             return community == Player;
         }
         public IReadOnlyList<(ISkillContext, ISkillContext)> SkillHistory => History.SkillHistory;
-        public GameInstance DeepCopy(int preRounds = 0)
+        public GameInstance DeepCopy()
         {
             GameInstance res = GameInstancePool.RentWithDiagnostic();
-
-            int n = History.SkillHistory.Count - preRounds;
-            if (n < 0)
-            {
-                throw new ArgumentException("PreRounds out of limit!");
-            }
-            for (int i = 0; i < n; ++i)
-            {
-                var pair = History.SkillHistory[i];
-                res.Declare(pair.Item1.SkillName, pair.Item1.Param,
-                            pair.Item2.SkillName, pair.Item2.Param,
-                            pair.Item1.StringParam, pair.Item2.StringParam);
-            }
+            res.Copy(this);
+            
             return res;
         }
 

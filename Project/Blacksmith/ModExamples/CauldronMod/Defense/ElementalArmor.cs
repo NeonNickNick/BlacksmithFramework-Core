@@ -1,9 +1,10 @@
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 
 namespace ModExamples.CauldronMod.Defense
 {
-    public class ElementalArmor : DefenseBase
+    public class ElementalArmor : DefenseEntity
     {
         public override DefenseType.CEValue Type { get; set; } = DefenseType.Instance.CommonArmor();
         public override int Power { get; set; } = 0;
@@ -14,7 +15,7 @@ namespace ModExamples.CauldronMod.Defense
         {
             _callback = callback;
         }
-        public override void Merge(DefenseBase addition)
+        public override void Merge(DefenseEntity addition)
         {
             //什么都不做即可
         }

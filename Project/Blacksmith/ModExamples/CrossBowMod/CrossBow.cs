@@ -4,7 +4,7 @@ using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
@@ -44,7 +44,7 @@ namespace ModExamples.CrossBowMod
         private IDSLSourceFile Aim(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .WriteFree(source => _aimed.Set(true), true);
+                .WriteCompileTime(source => _aimed.Set(true), true);
             return DSL.Create(sc.Self, pen);
         }
         private bool CriticalHitCheck(ISkillContext sc)
@@ -89,13 +89,13 @@ namespace ModExamples.CrossBowMod
                     {
                         new ModifierCallback((player, enemy) =>
                         {
-                            foreach(var resolution in enemy.Focus.Get<TurnContext>().Get<AttackResolution>())
+                            foreach(var analyzableData in enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>())
                             {
-                                if(resolution.Clock.IsRinging)
+                                if(analyzableData.Clock.IsRinging)
                                 {
-                                    resolution.AddStage(AttackStage.OnHitBody, (community, body, aresolution) =>
+                                    analyzableData.AddStage(AttackStage.Instance.OnHitBody(), (community, body, aanalyzableData) =>
                                     {
-                                        aresolution.Power *= 2;
+                                        aanalyzableData.Power *= 2;
                                     });
                                 }
                             }

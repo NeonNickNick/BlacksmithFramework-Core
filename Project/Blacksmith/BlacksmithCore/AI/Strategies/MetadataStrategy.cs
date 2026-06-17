@@ -1,10 +1,6 @@
-using System.Runtime.Intrinsics.X86;
-using System.Text.Json.Serialization;
 using BlacksmithCore.Driver;
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
 using ClapInfra.ClapModels.Components;
 
@@ -36,13 +32,13 @@ namespace BlacksmithCore.AI.Strategies
                 if (ProfessionRegistry.SkillMetadataDict[n].FirstOrDefault(s => s is IsInfinite _) != null)
                 {
                     int layer = 1;
-                    while(_main.ETryDeclare(n, layer) == SkillDeclareResult.Success)
+                    while (_main.ETryDeclare(n, layer) == SkillDeclareResult.Success)
                     {
                         layer++;
                     }
                     layer--;
                     set.Add((n, layer, ""));
-                    if(layer > 1)
+                    if (layer > 1)
                     {
                         layer--;
                         set.Add((n, layer, ""));
@@ -55,16 +51,16 @@ namespace BlacksmithCore.AI.Strategies
                         set.Add((n, 0, ""));
                     }
                 }
-                
+
             }
             Dictionary<Labels, string> dict = new();
-            foreach(var s in set)
+            foreach (var s in set)
             {
                 dict[(Labels)ProfessionRegistry.SkillMetadataDict[s.skillName].FirstOrDefault(m => m is Labels _)!] = s.skillName;
             }
 
             var ls = dict.Keys.ToList();
-            for(int i = ls.Count - 1; i >= 0; --i)
+            for (int i = ls.Count - 1; i >= 0; --i)
             {
                 if (ProfessionRegistry.SkillMetadataDict[dict[ls[i]]].FirstOrDefault(m => m is HasAttack _) == null)
                 {
@@ -75,7 +71,7 @@ namespace BlacksmithCore.AI.Strategies
                 }
                 if (ls[i].Impression == Impression.Aggressive)
                 {
-                    if(_random.NextDouble() < 0.5)
+                    if (_random.NextDouble() < 0.5)
                     {
                         dict.Remove(ls[i]);
                     }

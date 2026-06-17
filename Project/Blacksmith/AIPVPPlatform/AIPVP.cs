@@ -18,10 +18,10 @@ namespace AIPVPPlatform
         public float Start()
         {
             int s1winTimes = 0;
-            
+
             for (int _ = 0; _ < Times; _++)
             {
-                if(_ % 10 == 0)
+                if (_ % 10 == 0)
                 {
                     Console.WriteLine($"已完成{_ * 100.0f / Times}%");
                 }

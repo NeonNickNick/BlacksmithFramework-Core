@@ -1,9 +1,9 @@
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
+/*using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
@@ -62,23 +62,23 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             }
             return res;
         }
-        private bool SkyStrikeCheck(ISkillContext sc)
+        private static bool SkyStrikeCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1);
         }
         [HasAttack(3)]
         [HasBuff]
         [Labels(Impression.Aggressive, Strength.Strong)]
-        private IDSLSourceFile SkyStrike(ISkillContext sc)
+        private static IDSLSourceFile SkyStrike(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
                 .WriteAttack(3 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _fire.Set(true))
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _fire.Set(true))
                     .WithInterupt();
             return DSL.Create(sc.Self, Others(pen));
         }
-        private bool DragonToothCheck(ISkillContext sc)
+        private static bool DragonToothCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1);
         }
@@ -86,31 +86,31 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasDefense]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
-        private IDSLSourceFile DragonTooth(ISkillContext sc)
+        private static IDSLSourceFile DragonTooth(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
                 .WriteAttack(3 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _ice.Set(true))
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _ice.Set(true))
                 .WriteDefense(3, new CommonReduction());
             return DSL.Create(sc.Self, Others(pen));
         }
-        private bool TyrantDestructionCheck(ISkillContext sc)
+        private static bool TyrantDestructionCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1);
         }
         [HasAttack(3)]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
-        private IDSLSourceFile TyrantDestruction(ISkillContext sc)
+        private static IDSLSourceFile TyrantDestruction(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
                 .WriteAttack(3 + Fire(), AttackType.Instance.Physical(), APFactor: 2)
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _light.Set(true));
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _light.Set(true));
             return DSL.Create(sc.Self, Others(pen));
         }
-        private bool TripleStabCheck(ISkillContext sc)
+        private static bool TripleStabCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1);
         }
@@ -119,35 +119,35 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasAttack(1)]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
-        private IDSLSourceFile TripleStab(ISkillContext sc)
+        private static IDSLSourceFile TripleStab(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
                 .WriteAttack(2 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _dark.Set(true))
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true))
                 .WriteAttack(2, AttackType.Instance.Physical())
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _dark.Set(true))
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true))
                 .WriteAttack(1, AttackType.Instance.Physical())
-                    .WithFree(AttackStage.OnHitArmorFirstTime, (a, b, c) => _dark.Set(true));
+                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true));
             return DSL.Create(sc.Self, Others(pen));
         }
         private ClapStateVar<int> _chargeCount = new(0);
         private ClapStateVar<int> _chargeCost = new(4);
         private ClapStateVar<bool> _wasPassive = new(false);
-        private bool RisingDragonCheck(ISkillContext sc)
+        private static bool RisingDragonCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), _chargeCost.Value);
         }
         [HasAttack(10)]
         [Labels(Impression.Aggressive, Strength.Strong)]
-        private IDSLSourceFile RisingDragon(ISkillContext sc)
+        private static IDSLSourceFile RisingDragon(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(_chargeCost.Value, ResourceType.Instance.Iron())
                 .WriteAttack(9 + _chargeCount.Value * 4 + Fire(), AttackType.Instance.Magical());
             return DSL.Create(sc.Self, Others(pen));
         }
-        private bool ChargeCheck(ISkillContext sc)
+        private static bool ChargeCheck(ISkillContext sc)
         {
             return _chargeCount.Value < 2 && sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), _chargeCost.Value);
         }
@@ -181,16 +181,16 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         如果没有使用蓄力，那么就回到了state1
 
         注意：前提条件是不考虑跨回合伤害技能。如果出现了战矛可用的这种技能，那么要将反击规则插入到攻击抵消之后，并且重新再做一遍抵消
-        */
+        
         [HasBuff]
         [Labels(Impression.Robust, Strength.Super)]
-        private IDSLSourceFile Charge(ISkillContext sc)
+        private static IDSLSourceFile Charge(ISkillContext sc)
         {
             int chargeCountThis = _chargeCount.Value + 1;
             Pen pen = sf => sf
                 .UseResource(_chargeCost.Value, ResourceType.Instance.Iron())
-                .WriteFree(a => _chargeCount.Increment(), true)
-                .WriteFree(a => _chargeCost.Set(0), true)
+                .WriteCompileTime(a => _chargeCount.Increment(), true)
+                .WriteCompileTime(a => _chargeCost.Set(0), true)
                 .RegistCallbackOnJudge(new()
                 {
                     new ModifierCallback(AttackCanceling_Modifier_Before,
@@ -212,20 +212,21 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                 });
             return DSL.Create(sc.Self, pen);
         }
-        private void AttackCanceling_Modifier_Before(Community player, Community enemy)
+        private static void AttackCanceling_Modifier_Before(Community player, Community enemy)
         {
-            if (enemy.Focus.Get<TurnContext>().Get<AttackResolution>().Find(a => a.Clock.IsRinging) == null)
+            if (enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>().Find(a => a.Clock.IsRinging) == null)
             {
                 return;
             }
             _wasPassive.Set(true);
             Pen pen = sf => sf
                 .WriteAttack(10 + _chargeCount.Value * 4 + Fire(), AttackType.Instance.Magical())
-                .WriteFree(a => _chargeCount.Reset(), true)
-                .WriteFree(a => _chargeCost.Reset(), true);
+                .WriteCompileTime(a => _chargeCount.Reset(), true)
+                .WriteCompileTime(a => _chargeCost.Reset(), true);
             DSL.Create(player, Others(pen)).Compile().Execute(player);
 
         }
     }
 
 }
+*/

@@ -3,7 +3,7 @@ using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Models.Particular;
@@ -44,7 +44,7 @@ namespace ModExamples.MonkMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Jade())
                 .LoseHP(1)
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     _cloneNum.Increment();
                     clone = new Body(source, $"Clone{_cloneNum.Value}");
@@ -70,19 +70,19 @@ namespace ModExamples.MonkMod
                     {
                         new ModifierCallback((player, enemy) =>
                         {
-                            foreach(var resolution in player.Focus.Get<TurnContext>().Get<AttackResolution>())
+                            foreach(var analyzableData in player.Focus.Get<TurnContext>().Get<AttackAnalyzableData>())
                             {
-                                if(resolution.Clock.IsRinging)
+                                if(analyzableData.Clock.IsRinging)
                                 {
-                                    resolution.AddStage(AttackStage.OnHitBody, (community, body, aresolution) =>
+                                    analyzableData.AddStage(AttackStage.Instance.OnHitBody(), (community, body, aanalyzableData) =>
                                     {
                                         if (clone.Get<Health>().IsKilled)
                                         {
                                             return;
                                         }
-                                        int transmit = (int)MathF.Ceiling(aresolution.Power * _transmitPercent.Value);
+                                        int transmit = (int)MathF.Ceiling(aanalyzableData.Power * _transmitPercent.Value);
                                         clone.Get<Health>().LoseHP(transmit);
-                                        aresolution.Power -= transmit;
+                                        aanalyzableData.Power -= transmit;
                                     });
                                 }
                             }
@@ -104,7 +104,7 @@ namespace ModExamples.MonkMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Jade())
-                .WriteFree(a => _gbcTimes.Increment(), true)
+                .WriteCompileTime(a => _gbcTimes.Increment(), true)
                 .WriteDefense(100f - 60f * _gbcTimes.Value, new PercentageReduction(baseline: 100));
             return DSL.Create(sc.Self, pen);
         }
@@ -116,7 +116,7 @@ namespace ModExamples.MonkMod
         private IDSLSourceFile MazeFist(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     _clones.RemoveAll(c => c.Get<Health>().IsKilled);
                     var hpMax = _clones.MaxBy(c => c.Get<Health>().HP);
@@ -124,8 +124,8 @@ namespace ModExamples.MonkMod
                 }, true)
                 .WriteAttack(6f, AttackType.Instance.Physical())
                     .WithFree(
-                        AttackStage.OnHitArmorFirstTime,
-                        (source, target, aresolution) =>
+                        AttackStage.Instance.OnHitArmorFirstTime(),
+                        (source, target, aanalyzableData) =>
                         {
                             var entity = new EffectEntity(
                                 EffectType.Instance.AfterTransport(),
@@ -133,7 +133,7 @@ namespace ModExamples.MonkMod
                                 new(delayRounds: 1, remainingRounds: 1));
                             entity.Execute = (body) =>
                             {
-                                body.Get<TurnContext>().Get<AttackResolution>()
+                                body.Get<TurnContext>().Get<AttackAnalyzableData>()
                                     .RemoveAll(a => a.Clock.IsRinging);
                             };
                             source.Focus.Get<Effect>().Add(entity);
@@ -150,14 +150,14 @@ namespace ModExamples.MonkMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     _transmitPercent.Set(0.9f);
                     _mist.Set(false);
                     _clones.RemoveAll(c => c.Get<Health>().IsKilled);
                     var hpMin = _clones.MinBy(c => c.Get<Health>().HP);
                     var entity = new EffectEntity(
-                        EffectType.Instance.AfterResolutionWritten(),
+                        EffectType.Instance.AfterAnalyzableDataWritten(),
                         3f,
                         new(remainingRounds: 3));
                     entity.Execute = (body) =>

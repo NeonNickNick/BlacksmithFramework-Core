@@ -1,10 +1,9 @@
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
 using ModExamples.ProphetMod.Defense;
@@ -28,9 +27,9 @@ namespace ModExamples.ProphetMod
                     duration: 1,
                     (source, target, entity) =>
                     {
-                        var alist = target.Get<TurnContext>().Get<AttackResolution>();
+                        var alist = target.Get<TurnContext>().Get<AttackAnalyzableData>();
                         bool hasAtk = alist.Find(a => a.Clock.IsRinging) != null;
-                        target.Get<TurnContext>().Get<AttackResolution>()
+                        target.Get<TurnContext>().Get<AttackAnalyzableData>()
                               .RemoveAll(a => a.Clock.IsRinging);
                         if (hasAtk)
                         {
@@ -89,7 +88,7 @@ namespace ModExamples.ProphetMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Crystal())
-                .WriteFree(a =>
+                .WriteCompileTime(a =>
                 {
                     _afterDodge += (Community source, Body target, EffectEntity entity) =>
                     {
@@ -106,7 +105,7 @@ namespace ModExamples.ProphetMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
-                .WriteFree(a =>
+                .WriteCompileTime(a =>
                 {
                     _afterDodge += (Community source, Body target, EffectEntity entity) =>
                     {
@@ -119,7 +118,7 @@ namespace ModExamples.ProphetMod
         private IDSLSourceFile Assertion(ISkillContext sc)
         {
             Pen pen = (sf => sf
-                .WriteFree(a =>
+                .WriteCompileTime(a =>
                 {
                     _dodgeFail += (Community source, Body target, EffectEntity entity) =>
                     {

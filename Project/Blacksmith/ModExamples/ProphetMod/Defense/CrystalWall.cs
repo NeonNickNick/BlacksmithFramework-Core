@@ -1,17 +1,18 @@
 using BlacksmithCore.Infra.Models.Components;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 
 namespace ModExamples.ProphetMod.Defense
 {
-    public class CrystalWall : DefenseBase
+    public class CrystalWall : DefenseEntity
     {
         public override DefenseType.CEValue Type { get; set; } = DefenseType.Instance.RealReduction();
         public override int Power { get; set; } = 0;
         public override bool CanMerge { get; set; } = false;
         public override bool IsDead { get; set; } = false;
         private bool _isHit = false;
-        public override void Merge(DefenseBase addition)
+        public override void Merge(DefenseEntity addition)
         {
             //不会执行
         }

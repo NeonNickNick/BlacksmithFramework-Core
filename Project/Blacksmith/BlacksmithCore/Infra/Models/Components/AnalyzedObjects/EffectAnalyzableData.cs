@@ -1,0 +1,15 @@
+using BlacksmithCore.Infra.Models.Core;
+using ClapInfra.ClapUnit;
+
+namespace BlacksmithCore.Infra.Models.Components.AnalyzableDatas
+{
+    public class EffectAnalyzableData : IAnalyzableData
+    {
+        public required string AnalyzerKey { get; init; }
+        public required ClapRoundClock Clock { get; init; }
+        public required ClapRoundClock EntityClock { get; init; }
+        public required EffectType.CEValue Type { get; init; }
+        public required EffectTargetType.CEValue TargetType { get; init; }
+        public float Power { get; set; }
+    }
+}

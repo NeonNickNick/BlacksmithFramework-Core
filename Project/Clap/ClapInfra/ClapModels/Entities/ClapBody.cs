@@ -4,10 +4,15 @@ namespace ClapInfra.ClapModels.Entities
     {
         public void Update();
     }
-    public abstract class ClapBody
+    public interface IComponent<TBody>
     {
-        protected Dictionary<Type, object> _components = new();
-        protected ClapBody(HashSet<object> components)
+        public TBody Body { get; }
+    }
+    public abstract class ClapBody<TBody>
+        where TBody : ClapBody<TBody>
+    {
+        protected Dictionary<Type, IComponent<TBody>> _components = new();
+        protected void Add(HashSet<IComponent<TBody>> components)
         {
             if (components == null)
             {
@@ -28,6 +33,7 @@ namespace ClapInfra.ClapModels.Entities
             }
         }
         public TTargetComponent Get<TTargetComponent>()
+            where TTargetComponent : IComponent<TBody>
         {
             if (_components.TryGetValue(typeof(TTargetComponent), out var value))
             {

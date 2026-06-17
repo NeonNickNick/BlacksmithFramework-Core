@@ -1,4 +1,5 @@
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Entites;
 using ClapInfra.ClapModels.Components;
 using ClapInfra.ClapModels.Entities;
@@ -6,57 +7,113 @@ using ClapInfra.ClapUnit;
 
 namespace BlacksmithCore.Infra.Models.Components
 {
-    public interface IResolution : IClapResolution<Community>
-    {
-        public ClapRoundClock Clock { get; set; }
-        public float Power { get; set; }
+    public interface IAnalyzableData : IClapAnalyzableData<Community>
+    {  
     }
-    public class TurnContext : ClapTurnContext<IResolution, Community>, IUpdatePerRound
+    public class TurnContext : ClapTurnContext<IAnalyzableData, Community>, IComponent<Body>, IUpdatePerRound
     {
         private class Unit
         {
-            public Action<IResolution> Action;
+            public Action<IAnalyzableData> Action;
             public ClapRoundClock Clock;
-            public Unit(Action<IResolution> action, ClapRoundClock clock)
+            public Unit(Action<IAnalyzableData> action, ClapRoundClock clock)
             {
                 Action = action;
                 Clock = clock;
             }
         }
         private Dictionary<Type, List<Unit>> _preprocesses = new();
-        public TurnContext() : base(new()
+        public Body Body { get; }
+        public TurnContext(Body body) : base(new()
         {
-            typeof(AttackResolution),
-            typeof(DefenseResolution),
-            typeof(ResourceResolution),
-            typeof(EffectResolution)
+            typeof(AttackAnalyzableData),
+            typeof(DefenseAnalyzableData),
+            typeof(ResourceAnalyzableData),
+            typeof(EffectAnalyzableData)
         })
         {
-            foreach (var key in _resolutionLists.Keys)
+            Body = body;
+            foreach (var key in _analyzableDataLists.Keys)
             {
                 _preprocesses[key] = new();
             }
         }
-        public override void Reset()
+        public void Copy(TurnContext origin)
         {
-            foreach (var key in _resolutionLists.Keys)
-            {
+            foreach (var key in _analyzableDataLists.Keys)
+            {//权宜之计
                 _preprocesses[key].Clear();
             }
-            base.Reset();
+            var attack = Get<AttackAnalyzableData>();
+            attack.Clear();
+            foreach(var a in origin.Get<AttackAnalyzableData>())
+            {
+                attack.Add(new() 
+                {
+                    AnalyzerKey = a.AnalyzerKey,
+                    Clock = a.Clock.Copy(),
+                    Type = a.Type,
+                    Power = a.Power,
+                    APFactor = a.APFactor,
+                    TotalDamage = a.TotalDamage,
+                    StageKeys = a.StageKeys.ToDictionary(),
+                    ExtraParams = a.ExtraParams.ToDictionary()
+                });
+            }
+
+            var defense = Get<DefenseAnalyzableData>();
+            defense.Clear();
+            foreach (var a in origin.Get<DefenseAnalyzableData>())
+            {
+                defense.Add(new()
+                {
+                    AnalyzerKey = a.AnalyzerKey,
+                    Clock = a.Clock.Copy(),
+                    Defense = a.Defense,  //权宜之计 
+                    Power = a.Power,
+                });
+            }
+
+            var resource = Get<ResourceAnalyzableData>();
+            resource.Clear();
+            foreach (var a in origin.Get<ResourceAnalyzableData>())
+            {
+                resource.Add(new()
+                {
+                    AnalyzerKey = a.AnalyzerKey,
+                    Clock = a.Clock.Copy(),
+                    Type = a.Type,
+                    Power = a.Power,
+                });
+            }
+
+            var effect = Get<EffectAnalyzableData>();
+            effect.Clear();
+            foreach (var a in origin.Get<EffectAnalyzableData>())
+            {
+                effect.Add(new()
+                {
+                    AnalyzerKey = a.AnalyzerKey,
+                    Clock = a.Clock.Copy(),
+                    EntityClock = a.Clock.Copy(),
+                    Type = a.Type,
+                    Power = a.Power,
+                    TargetType = a.TargetType
+                });
+            }
         }
-        public void AddPreprocess<TResolution>(
-            Action<TResolution> preprocess,
+        public void AddPreprocess<TAnalyzableData>(
+            Action<TAnalyzableData> preprocess,
             int delayRounds = 0,
             int remainingRounds = 1,
             bool isInfinite = false)
-            where TResolution : IResolution
+            where TAnalyzableData : IAnalyzableData
         {
-            var temp = (IResolution resolution) =>
+            var temp = (IAnalyzableData analyzableData) =>
             {
-                preprocess((TResolution)resolution);
+                preprocess((TAnalyzableData)analyzableData);
             };
-            _preprocesses[typeof(TResolution)].Add(new(temp, new(remainingRounds: remainingRounds, delayRounds: delayRounds, isInfinite: isInfinite)));
+            _preprocesses[typeof(TAnalyzableData)].Add(new(temp, new(remainingRounds: remainingRounds, delayRounds: delayRounds, isInfinite: isInfinite)));
         }
         public void Update()
         {
@@ -74,43 +131,28 @@ namespace BlacksmithCore.Infra.Models.Components
                 }
             }
         }
-        public override void WriteResolution(IResolution resolution)
+        public override void WriteAnalyzableData(IAnalyzableData analyzableData)
         {
-            var pp = _preprocesses[resolution.GetType()];
+            var pp = _preprocesses[analyzableData.GetType()];
             pp.ForEach(p =>
             {
                 if (p.Clock.IsRinging)
                 {
-                    p.Action(resolution);
+                    p.Action(analyzableData);
                 }
             });
-            base.WriteResolution(resolution);
+            base.WriteAnalyzableData(analyzableData);
         }
-        protected override void ExecuteImpl<TResolution>(Community community, List<TResolution> list, Func<TResolution, bool>? ifProcess)
-        {
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (list[i].Clock.IsRinging)
-                {
-                    list[i].Execute(community);
-                    list.RemoveAt(i);
-                    i--;
-                }
-                else
-                {
-                    list[i].Clock.RoundPass();
-                }
-            }
-        }
+
         public List<(string name, int delayRounds, int power)> GetFutureDefenseView()
         {
-            return Get<DefenseResolution>()
-                .Select(d => (d.Defense.GetType().Name, d.Clock.DelayRounds, d.Defense.Power))
+            return Get<DefenseAnalyzableData>()
+                .Select(d => (d.Defense.GetType().Name, d.Clock.DelayRounds, (int)d.Defense.Power))
                 .ToList();
         }
         public List<(string name, int delayRounds, int power)> GetFutureAttackView()
         {
-            return Get<AttackResolution>()
+            return Get<AttackAnalyzableData>()
                 .Select(a => (a.Type.ToString(), a.Clock.DelayRounds, (int)a.Power))
                 .ToList();
         }

@@ -1,3 +1,4 @@
+using BlacksmithCore.Infra.Models.Components;
 using BlacksmithCore.Infra.Models.Entites;
 using ClapInfra.ClapUnit;
 
@@ -8,10 +9,9 @@ namespace BlacksmithCore.Infra.Judgement.Core
         Before,
         After
     }
-    public interface ICallbackOnJudge
+    public interface ICallbackOnJudge : IAnalyzableData
     {
-        public ClapRoundClock Clock { get; }
-        public JudgeStage.CEValue Stage { get; }
-        public Action<Community, Community> JudgeRule { get; set; }
+        public JudgeStage.CEValue Stage { get; init; }
+        public bool IsPlayer { get; init; }
     }
 }

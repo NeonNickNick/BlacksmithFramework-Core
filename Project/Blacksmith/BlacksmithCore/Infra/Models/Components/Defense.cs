@@ -1,15 +1,35 @@
-using BlacksmithCore.Infra.Models.Core;
+using BlacksmithCore.Infra.DSL;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
+using BlacksmithCore.Infra.Models.Entites;
+using BlacksmithCore.Specific.Defense;
 using ClapInfra.ClapModels.Entities;
 
 namespace BlacksmithCore.Infra.Models.Components
 {
-    public class Defense : IUpdatePerRound
+    public class Defense : IComponent<Body>, IUpdatePerRound
     {
-        private List<DefenseBase> _defenses = new();
-        public List<DefenseBase> Defenses => _defenses;
-        public void Reset()
+        private List<DefenseEntity> _defenses = new();
+        public IReadOnlyList<DefenseEntity> Defenses => _defenses;
+        public Body Body { get; }
+        public Defense(Body body)
+        {
+            Body = body;
+        }
+        public void Copy(Defense origin)
         {
             _defenses.Clear();
+            foreach(var defense in origin._defenses)
+            {
+                //权宜之计
+                _defenses.Add(new CommonReduction()
+                {
+                    AnalyzerKey = defense.AnalyzerKey,
+                    Type = defense.Type,
+                    Power = defense.Power,
+                    Clock = defense.Clock.Copy(),
+                    CanMerge = defense.CanMerge,
+                });
+            }
         }
         public void Update()
         {
@@ -17,13 +37,13 @@ namespace BlacksmithCore.Infra.Models.Components
             for (int i = n - 1; i >= 0; i--)
             {
                 _defenses[i].Update();
-                if (_defenses[i].IsDead)
+                if (_defenses[i].Clock.IsDead)
                 {
                     _defenses.RemoveAt(i);
                 }
             }
         }
-        public void Add(DefenseBase addition)
+        public void Add(DefenseEntity addition)
         {
             if (Merge(addition))
             {
@@ -32,13 +52,13 @@ namespace BlacksmithCore.Infra.Models.Components
             _defenses.Add(addition);
             _defenses = _defenses.OrderBy(d => d.Type).ToList();
         }
-        private bool Merge(DefenseBase addition)
+        private bool Merge(DefenseEntity addition)
         {
             if (!addition.CanMerge)
             {
                 return false;
             }
-            DefenseBase? firstMatch = _defenses.Find(d => d.Type == addition.Type);
+            DefenseEntity? firstMatch = _defenses.Find(d => d.Type == addition.Type);
             if (firstMatch == null)
             {
                 return false;
@@ -50,13 +70,9 @@ namespace BlacksmithCore.Infra.Models.Components
         {
             _defenses.Clear();
         }
-        public List<IDefenseWork> Get()
-        {
-            return _defenses.ConvertAll(d => (IDefenseWork)d);
-        }
         public List<(string name, int power)> GetView()
         {
-            return _defenses.Select(d => (d.GetType().Name, d.Power)).ToList();
+            return _defenses.Select(d => (d.GetType().Name, (int)d.Power)).ToList();
         }
     }
 }

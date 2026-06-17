@@ -1,8 +1,11 @@
+using BlacksmithCore.Infra.Models.Entites;
+using ClapInfra.ClapModels.Entities;
+
 namespace BlacksmithCore.Infra.Models.Components
 {
-    public class Health
+    public class Health : IComponent<Body>
     {
-        private int _hp;
+        private int _hp = 10;
         private bool _killed = false;
         public bool IsKilled => _killed;
         public int HP
@@ -17,17 +20,17 @@ namespace BlacksmithCore.Infra.Models.Components
                 _hp = value;
             }
         }
-        public int MHP { get; set; }
-        public void Reset()
+        public int MHP { get; set; } = 10;
+        public Body Body { get; }
+        public Health(Body body)
         {
-            _hp = 10;
-            MHP = 10;
-            _killed = false;
+            Body = body;
         }
-        public Health(int hp, int mhp)
+        public void Copy(Health origin)
         {
-            HP = hp;
-            MHP = mhp;
+            _hp = origin._hp;
+            MHP = origin.MHP;
+            _killed = origin._killed;
         }
         public void GainHP(int addition)
         {

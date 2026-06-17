@@ -1,78 +1,66 @@
 using System.Collections;
+using ClapInfra.ClapUnit;
 
 namespace ClapInfra.ClapModels.Components
 {
-    public interface IClapResolution<TCommunity>
+    public interface IClapAnalyzableData<TCommunity>
     {
-        public Action<TCommunity> Execute { get; set; }
+        public ClapRoundClock Clock { get; init; }
+        public string AnalyzerKey { get; init; }
     }
-    public abstract class ClapTurnContext<TIResolution, TCommunity>
-        where TIResolution : IClapResolution<TCommunity>
-    {
-        protected Dictionary<Type, IList> _resolutionLists = new();
-        protected ClapTurnContext(HashSet<Type> resolutionTypes)
+    public abstract class ClapTurnContext<TIAnalyzableData, TCommunity>
+        where TIAnalyzableData : IClapAnalyzableData<TCommunity>
+	{
+        protected Dictionary<Type, IList> _analyzableDataLists = new();
+        protected ClapTurnContext(HashSet<Type> analyzableDataTypes)
         {
-            if (resolutionTypes == null)
+            if (analyzableDataTypes == null)
             {
-                throw new ArgumentNullException(nameof(resolutionTypes));
+                throw new ArgumentNullException(nameof(analyzableDataTypes));
             }
-            foreach (var type in resolutionTypes)
+            foreach (var type in analyzableDataTypes)
             {
                 if (type == null)
                 {
-                    throw new ArgumentException("Resolution type cannot be null!");
+                    throw new ArgumentException("AnalyzableData type cannot be null!");
                 }
-                if (!(type.IsAssignableTo(typeof(TIResolution))))
+                if (!(type.IsAssignableTo(typeof(TIAnalyzableData))))
                 {
-                    throw new ArgumentException($"Resolution must derive from {nameof(TIResolution)}");
+                    throw new ArgumentException($"AnalyzableData must derive from {nameof(TIAnalyzableData)}");
                 }
                 Type listType = typeof(List<>).MakeGenericType(type);
-                _resolutionLists[type] = (IList)Activator.CreateInstance(listType)!;
+                _analyzableDataLists[type] = (IList)Activator.CreateInstance(listType)!;
             }
         }
-        public virtual void Reset()
+        public List<TAnalyzableData> Get<TAnalyzableData>()
+            where TAnalyzableData : TIAnalyzableData
         {
-            foreach (var list in _resolutionLists.Values)
+            if (_analyzableDataLists.TryGetValue(typeof(TAnalyzableData), out var list))
             {
-                list.Clear();
-            }
-        }
-        public List<TResolution> Get<TResolution>()
-            where TResolution : TIResolution
-        {
-            if (_resolutionLists.TryGetValue(typeof(TResolution), out var list))
-            {
-                return (List<TResolution>)list;
+                return (List<TAnalyzableData>)list;
             }
             else
             {
                 throw new InvalidOperationException(
-                    $"Resolution type {typeof(TResolution).Name} is not registered in the context.");
+                    $"AnalyzableData type {typeof(TAnalyzableData).Name} is not registered in the context.");
             }
         }
-        public virtual void WriteResolution(TIResolution resolution)
+        public virtual void WriteAnalyzableData(TIAnalyzableData analyzableData)
         {
-            if (resolution == null)
+            if (analyzableData == null)
             {
-                throw new ArgumentNullException(nameof(resolution));
+                throw new ArgumentNullException(nameof(analyzableData));
             }
 
-            if (_resolutionLists.TryGetValue(resolution.GetType(), out var list))
+            if (_analyzableDataLists.TryGetValue(analyzableData.GetType(), out var list))
             {
-                list.Add(resolution);
+                list.Add(analyzableData);
             }
             else
             {
                 throw new InvalidOperationException(
-                    $"Resolution type {resolution.GetType().Name} is not registered in the context.");
+                    $"AnalyzableData type {analyzableData.GetType().Name} is not registered in the context.");
             }
         }
-        public void Execute<TResolution>(TCommunity community, Func<TResolution, bool>? ifProcess = null)
-            where TResolution : TIResolution
-        {
-            ExecuteImpl(community, Get<TResolution>(), ifProcess);
-        }
-        protected abstract void ExecuteImpl<TResolution>(TCommunity community, List<TResolution> list, Func<TResolution, bool>? ifProcess)
-            where TResolution : TIResolution;
     }
 }

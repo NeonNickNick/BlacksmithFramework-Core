@@ -3,10 +3,9 @@ using BlacksmithCore.Infra.Attributes.SkillMarkOnly;
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
 using ClapInfra.ClapModels.Components;
@@ -69,12 +68,12 @@ namespace ModExamples.PhantomBookMod
         {
             Pen pen = sf => sf
                .UseResource(2f, ResourceType.Instance.Dream())
-               .WriteEffect(EffectType.Instance.AfterResolutionWritten(), EffectTargetType.Instance.Enemy(), 0, 1,
+               .WriteEffect(EffectType.Instance.AfterAnalyzableDataWritten(), EffectTargetType.Instance.Enemy(), 0, 1,
                (Community source, Body main, EffectEntity effectEntity) =>
                {
                    var tc = main.Get<TurnContext>();
-                   tc.Get<AttackResolution>().ForEach(a => a.Clock.DelayRounds++);
-                   tc.AddPreprocess<AttackResolution>(a => a.Clock.DelayRounds++, isInfinite: true);
+                   tc.Get<AttackAnalyzableData>().ForEach(a => a.Clock.DelayRounds++);
+                   tc.AddPreprocess<AttackAnalyzableData>(a => a.Clock.DelayRounds++, isInfinite: true);
                });
             return DSL.Create(sc.Self, pen);
         }
@@ -126,7 +125,7 @@ namespace ModExamples.PhantomBookMod
                     owner.Focus.Get<Skill>().AddSkill(nameof(PhantomBook), nameof(Nightmare));
                     owner.Focus.Get<Skill>().RemovePackage(nameof(Nightmare));
                 }))
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     source.Focus.Get<Skill>().RemoveSkill(nameof(PhantomBook), nameof(Nightmare));
                     source.Focus.Get<Skill>().AddPackage(new(new Nightmare()));

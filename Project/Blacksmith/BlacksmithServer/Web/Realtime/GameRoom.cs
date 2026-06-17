@@ -479,7 +479,7 @@ namespace BlacksmithServer.Web.Realtime
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GameRoom] Round timer resolution failed: {ex}");
+                Console.WriteLine($"[GameRoom] Round timer analyzableData failed: {ex}");
             }
         }
 

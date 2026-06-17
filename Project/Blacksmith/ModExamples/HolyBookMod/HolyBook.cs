@@ -2,9 +2,9 @@ using BlacksmithCore.Infra.Attributes.SkillMarkOnly;
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
 using ModExamples.HolyBookMod;
@@ -59,7 +59,7 @@ namespace ModExamples
                 .UseResource(1, ResourceType.Instance.Cross())
                 .WriteAttack(2, AttackType.Instance.Real())
                 .WriteDefense(2 + (int)MathF.Ceiling(_blasphemyCount / 3), new GreyHP())
-                .WriteFree(a => _blasphemyCount++, true);
+                .WriteCompileTime(a => _blasphemyCount++, true);
             return DSL.Create(sc.Self, pen);
         }
         private bool RebirthCheck(ISkillContext sc)
@@ -70,7 +70,7 @@ namespace ModExamples
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Cross())
-                .WriteEffect(EffectType.Instance.AfterResolutionWritten()
+                .WriteEffect(EffectType.Instance.AfterAnalyzableDataWritten()
                             , EffectTargetType.Instance.Self()
                             , 3f
                             , 3

@@ -13,7 +13,7 @@ namespace BlacksmithCore.Infra.Profession
     }
     public interface ISudoOperations
     {
-        public GameInstance DeepCopy(int preRounds = 0);
+        public GameInstance DeepCopy();
         public bool IsPlayer(Community community);
         public IReadOnlyList<(ISkillContext, ISkillContext)> SkillHistory { get; }
         public IGameMetadata GameMetadata { get; }

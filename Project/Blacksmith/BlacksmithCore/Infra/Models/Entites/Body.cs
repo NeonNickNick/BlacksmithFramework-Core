@@ -3,30 +3,32 @@ using ClapInfra.ClapModels.Entities;
 
 namespace BlacksmithCore.Infra.Models.Entites
 {
-    public class Body : ClapBody
+    public class Body : ClapBody<Body>
     {
         private string _name;
-        public Body(Community community, string name) : base(new()
-        {
-            community,
-            new Skill(),
-            new Health(10, 10),
-            new Defense(),
-            new Resource(),
-            new Effect(),
-            new TurnContext()
-        })
+        public Community Community { get; }
+        public Body(Community community, string name)
         {
             _name = name;
-        }
-        public void Reset()
+            Community = community;
+            Add(new()
         {
-            Get<Skill>().Reset();
-            Get<Health>().Reset();
-            Get<Defense>().Reset();
-            Get<Resource>().Reset();
-            Get<Effect>().Reset();
-            Get<TurnContext>().Reset();
+            new Skill(this),
+            new Health(this),
+            new Defense(this),
+            new Resource(this),
+            new Effect(this),
+            new TurnContext(this)
+        });
+        }
+        public void Copy(Body origin)
+        {
+            Get<Skill>().Copy(origin.Get<Skill>());
+            Get<Health>().Copy(origin.Get<Health>());
+            Get<Defense>().Copy(origin.Get<Defense>());
+            Get<Resource>().Copy(origin.Get<Resource>());
+            Get<Effect>().Copy(origin.Get<Effect>());
+            Get<TurnContext>().Copy(origin.Get<TurnContext>());
         }
         public BodyView GetView()
         {

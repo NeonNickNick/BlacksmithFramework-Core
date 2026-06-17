@@ -6,7 +6,7 @@ namespace BlacksmithCore.Infra.Models.Core
     public class EffectType : BlacksmithEnum<EffectType>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue AfterResolutionWritten() => GetCEValue();
+        public CEValue AfterAnalyzableDataWritten() => GetCEValue();
         [IsBlacksmithEnumMember(8)]
         public CEValue AfterTransport() => GetCEValue();
         [IsBlacksmithEnumMember(16)]

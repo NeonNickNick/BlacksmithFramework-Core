@@ -1,15 +1,31 @@
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
 using ClapInfra.ClapModels.Entities;
 namespace BlacksmithCore.Infra.Models.Components
 {
-    public class Effect : IUpdatePerRound
+    public class Effect : IComponent<Body>, IUpdatePerRound
     {
         private readonly List<EffectEntity> _effects = new();
-        public void Reset()
+        public List<EffectEntity> Effects => _effects;
+        public Body Body { get; }
+        public Effect(Body body)
+        {
+            Body = body;
+        }
+        public void Copy(Effect origin)
         {
             _effects.Clear();
+            foreach(var effect in origin._effects)
+            {
+                _effects.Add(new()
+                {
+                    AnalyzerKey = effect.AnalyzerKey,
+                    IsMark = effect.IsMark,
+                    Type = effect.Type,
+                    Clock = effect.Clock.Copy(),
+                });
+            }
         }
         public void Add(EffectEntity effectEntity)
         {
@@ -19,16 +35,9 @@ namespace BlacksmithCore.Infra.Models.Components
         {
             _effects.AddRange(effectEntities);
         }
-        public void Execute(EffectType.CEValue type, Body body)
+        public IEnumerable<EffectEntity> Where(EffectType.CEValue type)
         {
-            IEnumerable<EffectEntity> tempList = _effects.Where(e => e.Type == type);
-            foreach (var temp in tempList)
-            {
-                if (temp.Clock.IsRinging)
-                {
-                    temp.Execute(body);
-                }
-            }
+            return _effects.Where(e => e.Type == type);
         }
         public void Update()
         {

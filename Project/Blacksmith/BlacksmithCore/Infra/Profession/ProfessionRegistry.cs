@@ -62,7 +62,7 @@ namespace BlacksmithCore.Infra.Profession
                     && parameters[0].ParameterType == typeof(ISkillContext);
             }
             var minfos = package.GetType().GetMethods(
-                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
+                BindingFlags.NonPublic | BindingFlags.Static
             );
 
             foreach (var info in minfos)
@@ -71,6 +71,7 @@ namespace BlacksmithCore.Infra.Profession
                 {
                     continue;
                 }
+                
                 // 直接覆盖
                 SkillMetadataDict[info.Name.ToLower()] = new();
                 var metadatas = info.GetCustomAttributes();

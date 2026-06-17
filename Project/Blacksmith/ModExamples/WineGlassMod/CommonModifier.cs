@@ -23,7 +23,7 @@ namespace ModExamples.WineGlassMod
             sc.Self.Focus.Get<Skill>().AddPackage(new(new WineGlass()));
             Pen pen = sf => sf
                 .UseResource(1.5f, ResourceType.Instance.Iron())
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     Common.ExcludeAllProfessions(source);
                 }, false);

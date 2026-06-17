@@ -1,15 +1,16 @@
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 
 namespace ModExamples.HolyBookMod.Defense
 {
-    public class GreyHP : DefenseBase
+    public class GreyHP : DefenseEntity
     {
         public override DefenseType.CEValue Type { get; set; } = DefenseType.Instance.GreyHP();
         public override int Power { get; set; } = 0;
         public override bool CanMerge { get; set; } = false;
         public override bool IsDead { get; set; } = false;
-        public override void Merge(DefenseBase addition)
+        public override void Merge(DefenseEntity addition)
         {
             //不会执行
         }

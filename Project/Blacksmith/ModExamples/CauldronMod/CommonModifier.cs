@@ -23,7 +23,7 @@ namespace ModExamples.CauldronMod
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Cauldron()));
             Pen pen = sf => sf
                 .UseResource(3f, ResourceType.Instance.Iron())
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     source.Focus.Get<Skill>().RemoveSkill(nameof(Common), nameof(Cauldron));
                 }, false);

@@ -1,6 +1,8 @@
+using System.Data;
+using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 using ClapInfra.ClapJudgement;
@@ -8,20 +10,15 @@ using ClapInfra.ClapUnit;
 
 namespace BlacksmithCore.Infra.Judgement
 {
-    public class JudgeRuleManager : ClapJudgeRuleManager<Community>
+    public class JudgeRuleManager : ClapJudgeRuleManager<Community, IAnalyzableData>
     {
         public class StageRuleContainer
         {
-            public class RuleUnit
+            public class RuleUnit : IAnalyzableData
             {
-                public ClapRoundClock Clock;
-                public Action<Community, Community> Rule;
-
-                public RuleUnit(ClapRoundClock clock, Action<Community, Community> rule)
-                {
-                    Clock = clock;
-                    Rule = rule;
-                }
+                public required string AnalyzerKey { get; init; }
+                public required ClapRoundClock Clock { get; init; }
+                public required bool IsPlayer { get; init; }
             }
             private readonly Action<Community, Community> _baseRule;
             private readonly List<RuleUnit> _overrideRules = new();
@@ -30,6 +27,40 @@ namespace BlacksmithCore.Infra.Judgement
             public StageRuleContainer(Action<Community, Community> baseRule)
             {
                 _baseRule = baseRule;
+            }
+            public void Copy(StageRuleContainer origin)
+            {
+                //基础规则不需要拷贝，拷贝三个列表即可
+                _overrideRules.Clear();
+                foreach(var rule in origin._overrideRules)
+                {
+                    _overrideRules.Add(new() 
+                    {
+                        AnalyzerKey = rule.AnalyzerKey,
+                        Clock = rule.Clock.Copy(),
+                        IsPlayer = rule.IsPlayer,
+                    });
+                }
+                _modifiersBefore.Clear();
+                foreach (var rule in origin._modifiersBefore)
+                {
+                    _overrideRules.Add(new()
+                    {
+                        AnalyzerKey = rule.AnalyzerKey,
+                        Clock = rule.Clock.Copy(),
+                        IsPlayer = rule.IsPlayer,
+                    });
+                }
+                _modifiersAfter.Clear();
+                foreach (var rule in origin._modifiersAfter)
+                {
+                    _overrideRules.Add(new()
+                    {
+                        AnalyzerKey = rule.AnalyzerKey,
+                        Clock = rule.Clock.Copy(),
+                        IsPlayer = rule.IsPlayer,
+                    });
+                }
             }
             public void AddOverride(RuleUnit ruleUnit)
             {
@@ -56,20 +87,14 @@ namespace BlacksmithCore.Infra.Judgement
                 _modifiersBefore.ForEach(o => o.Clock.RoundPass());
                 _modifiersAfter.ForEach(o => o.Clock.RoundPass());
             }
-            public void Reset()
-            {
-                _overrideRules.Clear();
-                _modifiersBefore.Clear();
-                _modifiersAfter.Clear();
-            }
             public void Execute(Community player, Community enemy)
             {
-                Action<Community, Community>? overrideRule = null;
+                RuleUnit? overrideRule = null;
                 for (int i = _overrideRules.Count - 1; i >= 0; i--)
                 {
                     if (_overrideRules[i].Clock.IsRinging)
                     {
-                        overrideRule = _overrideRules[i].Rule;
+                        overrideRule = _overrideRules[i];
                         break;
                     }
                 }
@@ -79,22 +104,48 @@ namespace BlacksmithCore.Infra.Judgement
                     {
                         if (rule.Clock.IsRinging)
                         {
-                            rule.Rule(player, enemy);
+                            if (rule.IsPlayer)
+                            {
+                                AnalyzerRegistry.JudgeCallback.Get(rule.AnalyzerKey)(player, enemy);
+                            }
+                            else
+                            {
+                                AnalyzerRegistry.JudgeCallback.Get(rule.AnalyzerKey)(enemy, player);
+                            }
                         }
                     }
                     // 核心规则
-                    var core = overrideRule ?? _baseRule;
-                    core(player, enemy);
+                    if(overrideRule == null)
+                    {
+                        _baseRule(player, enemy);
+                    }
+                    else
+                    {
+                        if (overrideRule.IsPlayer)
+                        {
+                            AnalyzerRegistry.JudgeCallback.Get(overrideRule.AnalyzerKey)(player, enemy);
+                        }
+                        else
+                        {
+                            AnalyzerRegistry.JudgeCallback.Get(overrideRule.AnalyzerKey)(enemy, player);
+                        }
+                    }                    
                     // AFTER modifiers
                     foreach (var rule in _modifiersAfter)
                     {
                         if (rule.Clock.IsRinging)
                         {
-                            rule.Rule(player, enemy);
+                            if (rule.IsPlayer)
+                            {
+                                AnalyzerRegistry.JudgeCallback.Get(rule.AnalyzerKey)(player, enemy);
+                            }
+                            else
+                            {
+                                AnalyzerRegistry.JudgeCallback.Get(rule.AnalyzerKey)(enemy, player);
+                            }
                         }
                     }
                 }
-                ;
                 Update();
             }
         }
@@ -105,20 +156,12 @@ namespace BlacksmithCore.Infra.Judgement
                 new((player, enemy) => { })
             },
             {
-                JudgeStage.Instance.OnEffectTaking_AfterResolutionWritten(),
-                new((player, enemy) => TakeEffects(EffectType.Instance.AfterResolutionWritten(), player, enemy))
-            },
-            {
-                JudgeStage.Instance.OnEffectSwaping(),
-                new(SwapEffects)
+                JudgeStage.Instance.OnEffectTaking_AfterAnalyzableDataWritten(),
+                new((player, enemy) => TakeEffects(EffectType.Instance.AfterAnalyzableDataWritten(), player, enemy))
             },
             {
                 JudgeStage.Instance.OnAttackCanceling(),
                 new(CancelAttacks)
-            },
-            {
-                JudgeStage.Instance.OnAttackSwaping(),
-                new(SwapAttacks)
             },
             {
                 JudgeStage.Instance.OnApplyingEffect(),
@@ -145,59 +188,51 @@ namespace BlacksmithCore.Infra.Judgement
                 new((player, enemy) => { })
             }
         };
+        public void Copy(JudgeRuleManager origin)
+        {
+            foreach(var key in _ruleContainers.Keys)
+            {
+                _ruleContainers[key].Copy(origin._ruleContainers[key]);
+            }
+        }
         #region Default Rules（原有逻辑）
         private static void TakeEffects(EffectType.CEValue type, Community player, Community enemy)
         {
-            player.Focus.Get<Effect>().Execute(type, player.Focus);
-            foreach (var temp in player.SummonList)
+            foreach (var entity in player.Focus.Get<Effect>().Where(type))
             {
-                temp.Get<Effect>().Execute(type, temp);
+                if (entity.Clock.IsRinging && !entity.IsMark)
+                {
+                    AnalyzerRegistry.DSL.Get(entity.AnalyzerKey)(player, enemy, entity);
+                }
             }
 
-            enemy.Focus.Get<Effect>().Execute(type, enemy.Focus);
-            foreach (var temp in enemy.SummonList)
+            foreach (var entity in enemy.Focus.Get<Effect>().Where(type))
             {
-                temp.Get<Effect>().Execute(type, temp);
+                if (entity.Clock.IsRinging)
+                {
+                    AnalyzerRegistry.DSL.Get(entity.AnalyzerKey)(enemy, player, entity);
+                }
             }
-        }
-
-        private static void SwapEffects(Community player, Community enemy)
-        {
-            SwapEffects(player.Focus.Get<TurnContext>().Get<EffectResolution>(),
-                        enemy.Focus.Get<TurnContext>().Get<EffectResolution>());
-        }
-
-        private static void SwapEffects(List<EffectResolution> playerResolutions,
-            List<EffectResolution> enemyResolutions)
-        {
-            var playerTemp = playerResolutions.Where(e => e.TargetType == EffectTargetType.Instance.Enemy() && e.Clock.IsRinging).ToHashSet();
-            var enemyTemp = enemyResolutions.Where(e => e.TargetType == EffectTargetType.Instance.Enemy() && e.Clock.IsRinging).ToHashSet();
-
-            playerResolutions.RemoveAll(playerTemp.Contains);
-            enemyResolutions.RemoveAll(enemyTemp.Contains);
-
-            playerResolutions.AddRange(enemyTemp);
-            enemyResolutions.AddRange(playerTemp);
         }
 
         private static void CancelAttacks(Community player, Community enemy)
         {
-            CancelAttackResolutions(player.Focus.Get<TurnContext>().Get<AttackResolution>(),
-                                    enemy.Focus.Get<TurnContext>().Get<AttackResolution>());
+            CancelAttackAnalyzableDatas(player.Focus.Get<TurnContext>().Get<AttackAnalyzableData>(),
+                                    enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>());
         }
 
-        private static void CancelAttackResolutions(List<AttackResolution> playerResolutions,
-            List<AttackResolution> enemyResolutions)
+        private static void CancelAttackAnalyzableDatas(List<AttackAnalyzableData> playerAnalyzableDatas,
+            List<AttackAnalyzableData> enemyAnalyzableDatas)
         {
-            playerResolutions = playerResolutions.OrderBy(a => a.Type).ToList();
-            enemyResolutions = enemyResolutions.OrderBy(a => a.Type).ToList();
+            playerAnalyzableDatas = playerAnalyzableDatas.OrderBy(a => a.Type).ToList();
+            enemyAnalyzableDatas = enemyAnalyzableDatas.OrderBy(a => a.Type).ToList();
             int playerIndex = 0;
             int enemyIndex = 0;
 
-            while (playerIndex < playerResolutions.Count && enemyIndex < enemyResolutions.Count)
+            while (playerIndex < playerAnalyzableDatas.Count && enemyIndex < enemyAnalyzableDatas.Count)
             {
-                var playerAttack = playerResolutions[playerIndex];
-                var enemyAttack = enemyResolutions[enemyIndex];
+                var playerAttack = playerAnalyzableDatas[playerIndex];
+                var enemyAttack = enemyAnalyzableDatas[enemyIndex];
 
                 if (playerAttack.Type == AttackType.Instance.Real() || !playerAttack.Clock.IsRinging)
                 {
@@ -215,51 +250,50 @@ namespace BlacksmithCore.Infra.Judgement
                     Cancel(playerAttack.Power, enemyAttack.Power);
 
                 if (playerAttack.Power <= 0f)
-                    playerResolutions.RemoveAt(playerIndex);
+                    playerAnalyzableDatas.RemoveAt(playerIndex);
 
                 if (enemyAttack.Power <= 0f)
-                    enemyResolutions.RemoveAt(enemyIndex);
+                    enemyAnalyzableDatas.RemoveAt(enemyIndex);
             }
         }
-        public static (float, float) Cancel(float a, float b)
+        public static (int, int) Cancel(int a, int b)
         {
-            return (MathF.Max(0, a - b), MathF.Max(0, b - a));
-        }
-        private static void SwapAttacks(Community player, Community enemy)
-        {
-            SwapAttacks(player.Focus.Get<TurnContext>().Get<AttackResolution>(),
-                        enemy.Focus.Get<TurnContext>().Get<AttackResolution>());
-        }
-
-        private static void SwapAttacks(List<AttackResolution> playerResolutions,
-            List<AttackResolution> enemyResolutions)
-        {
-            var playerTemp = playerResolutions.Where(e => e.Clock.IsRinging).ToList();
-            var enemyTemp = enemyResolutions.Where(e => e.Clock.IsRinging).ToList();
-
-            playerResolutions.RemoveAll(playerTemp.Contains);
-            enemyResolutions.RemoveAll(enemyTemp.Contains);
-
-            playerResolutions.AddRange(enemyTemp);
-            enemyResolutions.AddRange(playerTemp);
+            return (Math.Max(0, a - b), Math.Max(0, b - a));
         }
         private static void ApplyEffect(Community player, Community enemy)
         {
-            player.Focus.Get<TurnContext>().Execute<EffectResolution>(player);
-            enemy.Focus.Get<TurnContext>().Execute<EffectResolution>(enemy);
+            Execute<EffectAnalyzableData>(player, enemy);
+            Execute<EffectAnalyzableData>(enemy, player);
         }
         private static void ApplyOthers(Community player, Community enemy)
         {
-            player.Focus.Get<TurnContext>().Execute<DefenseResolution>(player);
-            enemy.Focus.Get<TurnContext>().Execute<DefenseResolution>(enemy);
+            Execute<DefenseAnalyzableData>(player, enemy);
+            Execute<DefenseAnalyzableData>(enemy, player);
 
-            player.Focus.Get<TurnContext>().Execute<AttackResolution>(player);
-            enemy.Focus.Get<TurnContext>().Execute<AttackResolution>(enemy);
+            Execute<AttackAnalyzableData>(player, enemy);
+            Execute<AttackAnalyzableData>(enemy, player);
 
-            player.Focus.Get<TurnContext>().Execute<ResourceResolution>(player);
-            enemy.Focus.Get<TurnContext>().Execute<ResourceResolution>(enemy);
+            Execute<ResourceAnalyzableData>(player, enemy);
+            Execute<ResourceAnalyzableData>(enemy, player);
         }
-
+        private static void Execute<TAnalyzableData>(Community player, Community enemy)
+            where TAnalyzableData : IAnalyzableData
+        {
+            var list = player.Focus.Get<TurnContext>().Get<TAnalyzableData>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Clock.IsRinging)
+                {
+                    AnalyzerRegistry.DSL.Get(list[i].AnalyzerKey)(player, enemy, list[i]);
+                    list.RemoveAt(i);
+                    i--;
+                }
+                else
+                {
+                    list[i].Clock.RoundPass();
+                }
+            }
+        }
         private static void Update(Community player, Community enemy)
         {
             player.Update();
@@ -274,35 +308,16 @@ namespace BlacksmithCore.Infra.Judgement
             }
         }
 
-        public void Reset()
-        {
-            foreach (var container in _ruleContainers.Values)
-            {
-                container.Reset();
-            }
-        }
         public void AddJudgeRule(Community source, IEnumerable<ICallbackOnJudge> callbacks)
         {
             foreach (var callback in callbacks)
             {
-                var originalRule = callback.JudgeRule;
-
-                callback.JudgeRule = (player, enemy) =>
+                StageRuleContainer.RuleUnit unit = new()
                 {
-                    if (source == player)
-                    {
-                        originalRule(player, enemy);
-                    }
-                    else
-                    {
-                        originalRule(enemy, player);
-                    }
+                    AnalyzerKey = callback.AnalyzerKey,
+                    Clock = callback.Clock,
+                    IsPlayer = callback.IsPlayer
                 };
-            }
-            ;
-            foreach (var callback in callbacks)
-            {
-                StageRuleContainer.RuleUnit unit = new(callback.Clock, callback.JudgeRule);
                 if (callback is OverrideCallback overideCallback)
                 {
                     _ruleContainers[overideCallback.Stage].AddOverride(unit);

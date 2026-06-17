@@ -2,7 +2,7 @@ namespace ClapInfra.ClapProfession
 {
     public interface IClapSkillPackage<TISkillContext, TIDSLSourceFile>
     {
-        public HashSet<string> AvailableSkillNames { get; }
+        public HashSet<string> AvailableSkillNames { get; set; }
         public Dictionary<string, Func<TISkillContext, bool>> SkillChecker { get; }
         public Dictionary<string, Func<TISkillContext, TIDSLSourceFile>> SkillSourceFileGenerator { get; }
         public abstract TIDSLSourceFile PassiveSkill(TISkillContext sc);
@@ -11,11 +11,11 @@ namespace ClapInfra.ClapProfession
     public abstract class ClapSkillPackage<TISkillContext, TIDSLSourceFile>
         : IClapSkillPackage<TISkillContext, TIDSLSourceFile>
     {
-        protected readonly HashSet<string> _availableSkillNames = new();
+        protected  HashSet<string> _availableSkillNames = new();
         protected readonly Dictionary<string, Func<TISkillContext, bool>> _skillChecker = new();
         protected readonly Dictionary<string, Func<TISkillContext, TIDSLSourceFile>> _skillSourceFileGenerator = new();
 
-        public HashSet<string> AvailableSkillNames => _availableSkillNames;
+        public HashSet<string> AvailableSkillNames { get => _availableSkillNames; set => _availableSkillNames = value; }
         public Dictionary<string, Func<TISkillContext, bool>> SkillChecker => _skillChecker;
         public Dictionary<string, Func<TISkillContext, TIDSLSourceFile>> SkillSourceFileGenerator => _skillSourceFileGenerator;
 
@@ -33,11 +33,11 @@ namespace ClapInfra.ClapProfession
             _skillChecker.Add(skillName, checker);
             _skillSourceFileGenerator.Add(skillName, generator);
         }
-
-        /// <summary>
-        /// Overridden by source-generated partial class to register skills without reflection.
-        /// </summary>
         protected virtual void RegistSkills() { }
+        public virtual void RegistAnalyzers()
+        {
+
+        }
 
         public abstract TIDSLSourceFile PassiveSkill(TISkillContext sc);
     }

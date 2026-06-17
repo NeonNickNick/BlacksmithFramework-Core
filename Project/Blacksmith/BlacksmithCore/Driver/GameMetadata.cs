@@ -18,10 +18,9 @@ namespace BlacksmithCore.Driver
         }
         public SkillMetadata CurrentPlayerSkillMetadata = null!;
         public SkillMetadata CurrentEnemySkillMetadata = null!;
-        public void Reset()
-        {
-            CurrentEnemySkillMetadata = null!;
-            CurrentPlayerSkillMetadata = null!;
+        public void Copy(GameMetadata origin)
+        { 
+            //暂时可不写
         }
         public void UpdateCurrentSkill(string playerSkill, string enemySkill)
         {

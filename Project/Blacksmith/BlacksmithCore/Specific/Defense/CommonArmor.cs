@@ -1,30 +1,16 @@
+using BlacksmithCore.Infra.DSL;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
+using ClapInfra.ClapUnit;
 namespace BlacksmithCore.Specific.Defense
 {
-    public class CommonArmor : DefenseBase
+    public class CommonArmor : DefenseEntity
     {
-        public override DefenseType.CEValue Type { get; set; } = DefenseType.Instance.CommonArmor();
+        public override string AnalyzerKey { get; init; } = nameof(StandardAnalyzers.DefaultArmor);
+        public override DefenseType.CEValue Type { get; init; } = DefenseType.Instance.CommonArmor();
         public override int Power { get; set; } = 0;
-        public override bool CanMerge { get; set; } = false;
-        public override bool IsDead { get; set; } = false;
-
-        public override void Merge(DefenseBase addition)
-        {
-            //不会被调用
-        }
-        public override void Update()
-        {
-            if (Power <= 0)
-            {
-                IsDead = true;
-            }
-        }
-        public override (int, int) Work(Body source, Body owner, int attack, AttackType.CEValue type)
-        {
-            var res = (Math.Max(0, attack - Power), (int)MathF.Min(attack, Power));
-            Power = Math.Max(0, Power - attack);
-            return res;
-        }
+        public override ClapRoundClock Clock { get; init; } = new(isInfinite: true);
+        public override bool CanMerge { get; init; } = false;
     }
 }

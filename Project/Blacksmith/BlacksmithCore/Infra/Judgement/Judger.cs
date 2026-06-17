@@ -1,30 +1,26 @@
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement.Core;
+using BlacksmithCore.Infra.Models.Components;
 using BlacksmithCore.Infra.Models.Entites;
 using ClapInfra.ClapJudgement;
 
 namespace BlacksmithCore.Infra.Judgement
 {
-    public class Judger : ClapJudger<Community, Judger, JudgeRuleManager, Intent, IDSLSourceFile>
+    public class Judger : ClapJudger<Community, Judger, JudgeRuleManager, Intent, IDSLSourceFile, IAnalyzableData>
     {
         public Judger(Community player, Community enemy) : base(player, enemy)
         {
-
         }
-        public void Reset()
+        public void Copy(Judger origin)
         {
-            _playerIntents = new List<Intent>();
-            _enemyIntents = new List<Intent>();
-            JudgeRuleManager.Reset();
+            JudgeRuleManager.Copy(origin.JudgeRuleManager);
         }
         protected override IEnumerable<Intent> Compile(IEnumerable<IDSLSourceFile> sourceFiles)
         {
-            // 预估容量以减少 List 扩容
             int? totalCount = (sourceFiles as ICollection<IDSLSourceFile>)?.Count;
             var passives = new List<IDSLSourceFile>(totalCount ?? 4);
             var nonPassives = new List<IDSLSourceFile>(totalCount ?? 4);
 
-            // 一次遍历完成分组，保留原始顺序
             foreach (var sf in sourceFiles)
             {
                 if (sf.IsPassive)
@@ -48,13 +44,13 @@ namespace BlacksmithCore.Infra.Judgement
             int index = passiveCount;
             foreach (var sf in nonPassives)
             {
-                result[index++] = sf.Compile(this);
+                result[index++] = sf.Compile(JudgeRuleManager);
             }
 
             // 3. 最后编译被动文件并替换原来的占位符
             for (int i = 0; i < passiveCount; i++)
             {
-                result[i] = passives[i].Compile(this);
+                result[i] = passives[i].Compile(JudgeRuleManager);
             }
 
             return result;

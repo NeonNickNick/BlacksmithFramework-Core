@@ -6,20 +6,10 @@ namespace BlacksmithCore.Infra.Judgement
 {
     public class ModifierCallback : ICallbackOnJudge
     {
-        public ClapRoundClock Clock { get; }
-        public JudgeStage.CEValue Stage { get; }
-        public ModifierOrder ModifierOrder { get; }
-        public Action<Community, Community> JudgeRule { get; set; }
-        public ModifierCallback(
-            Action<Community, Community> judgeRule,
-            JudgeStage.CEValue stage,
-            ModifierOrder modifierOrder,
-            ClapRoundClock clock)
-        {
-            Clock = clock;
-            Stage = stage;
-            ModifierOrder = modifierOrder;
-            JudgeRule = judgeRule;
-        }
+        public required string AnalyzerKey { get; init; }
+        public required ClapRoundClock Clock { get; init; }
+        public required JudgeStage.CEValue Stage { get; init; }
+        public required bool IsPlayer { get; init; }
+        public required ModifierOrder ModifierOrder { get; init; }
     }
 }

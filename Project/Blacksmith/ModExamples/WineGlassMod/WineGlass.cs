@@ -1,6 +1,6 @@
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Profession;
 
@@ -36,8 +36,8 @@ namespace ModExamples.WineGlassMod
                     duration: 1,
                     (source, target, entity) =>
                     {
-                        var alist = target.Get<TurnContext>().Get<AttackResolution>();
-                        target.Get<TurnContext>().Get<AttackResolution>()
+                        var alist = target.Get<TurnContext>().Get<AttackAnalyzableData>();
+                        target.Get<TurnContext>().Get<AttackAnalyzableData>()
                               .RemoveAll(a => a.Clock.IsRinging);
                     }
                 );
@@ -52,14 +52,14 @@ namespace ModExamples.WineGlassMod
             Pen pen = sf => sf
                 .UseResource(3f, ResourceType.Instance.Wine())
                 .WriteEffect(
-                    EffectType.Instance.AfterResolutionWritten(),
+                    EffectType.Instance.AfterAnalyzableDataWritten(),
                     EffectTargetType.Instance.Self(),
                     power: 0f,
                     duration: 3,
                     (source, target, entity) =>
                     {
-                        var alist = target.Get<TurnContext>().Get<AttackResolution>();
-                        target.Get<TurnContext>().Get<AttackResolution>()
+                        var alist = target.Get<TurnContext>().Get<AttackAnalyzableData>();
+                        target.Get<TurnContext>().Get<AttackAnalyzableData>()
                               .RemoveAll(a => a.Clock.IsRinging);
                     },
                     delayRounds: 1

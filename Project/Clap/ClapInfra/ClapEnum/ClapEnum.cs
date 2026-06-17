@@ -24,7 +24,7 @@ namespace ClapInfra.ClapEnum
     {
         //实际上可断言一定是先调用构造函数，此时已经不是null
         public static T Instance { get; private set; } = null!;
-
+        private const string _default = "__default__";
         public struct CEValue : IComparable<CEValue>
         {
             private static int _counter = 0;
@@ -68,6 +68,7 @@ namespace ClapInfra.ClapEnum
                 return base.ToString() ?? "";
             }
         }
+        public CEValue Default() => _enumDict[_default];
         public override Type GetCEValueType()
         {
             return typeof(CEValue);
@@ -93,6 +94,7 @@ namespace ClapInfra.ClapEnum
             Instance = (T)this;
             var type = GetType();
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            Create(_default, -1);
             foreach (var method in methods)
             {
                 var metaData = method.GetCustomAttribute<TMemberAttribute>();

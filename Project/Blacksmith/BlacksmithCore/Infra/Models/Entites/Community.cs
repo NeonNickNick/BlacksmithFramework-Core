@@ -16,19 +16,20 @@ namespace BlacksmithCore.Infra.Models.Entites
             }
         }
         public Body Focus { get; set; }
+        public bool IsPlayer { get; private set; }
         public List<Body> SummonList { get; private set; } = new();
         private List<Unit> _transforms = new();
         private Dictionary<Body, Action> _callbacks = new();
-        public Community()
+        public Community(bool isPlayer)
         {
             Focus = new(this, "Main");
+            IsPlayer = isPlayer;
         }
-        public void Reset()
+        public void Copy(Community origin)
         {
-            SummonList.Clear();
-            _transforms.Clear();
-            _callbacks.Clear();
-            Focus.Reset();
+            Focus.Copy(origin.Focus);
+            IsPlayer = origin.IsPlayer;
+            //暂时不考虑其他
         }
         public void AddTransform(
             Action action,

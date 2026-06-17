@@ -13,7 +13,7 @@ namespace ModExamples.MonkMod
         public override IDSLSourceFile PassiveSkillImpl(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .WriteFree(a => _gbcTimes.Increment(), true)
+                .WriteCompileTime(a => _gbcTimes.Increment(), true)
                 .WriteDefense(100f - 60f * _gbcTimes.Value, new PercentageReduction(baseline: 100));
             return DSL.Create(sc.Self, pen);
         }

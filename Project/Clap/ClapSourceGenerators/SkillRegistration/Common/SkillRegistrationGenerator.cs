@@ -53,7 +53,7 @@ namespace ClapSourceGenerators.SkillRegistration.Common
 
             var methods = symbol.GetMembers()
                 .OfType<IMethodSymbol>()
-                .Where(m => m is { DeclaredAccessibility: Accessibility.Private, IsStatic: false })
+                .Where(m => m is { DeclaredAccessibility: Accessibility.Private, IsStatic: true })
                 .ToList();
 
             var skills = new List<SkillMethodInfo>();

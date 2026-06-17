@@ -98,6 +98,7 @@ namespace BlacksmithCore.Infra.Utils
                 {
                     ProfessionRegistry.RegistProfessionName(plugin.GetType().Name);
                     ProfessionRegistry.CollectSkillMetadata(plugin);
+                    plugin.RegistAnalyzers();
                 }
             }
             //接下来记录Mod对已有包的修改，最重要的是给Common包扩展技能，否则无法使用Mod职业
@@ -113,6 +114,7 @@ namespace BlacksmithCore.Infra.Utils
                     ProfessionRegistry.RegistProfessionModifier(metaData.TargetName, plugin);
                     // 元数据直接覆盖
                     ProfessionRegistry.CollectSkillMetadata(plugin);
+                    plugin.RegistAnalyzers();
                 }
             }
         }

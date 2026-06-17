@@ -23,7 +23,7 @@ namespace ModExamples.MonkMod
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Monk()));
             Pen pen = sf => sf
                 .UseResource(3f, ResourceType.Instance.Iron())
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     Common.ExcludeAllProfessions(source);
                 }, false);

@@ -1,71 +1,96 @@
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
+using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
-using ClapInfra.ClapUnit;
-
+using BlacksmithCore.Specific.BuiltInProfessions.BloodSigilDSLExtension;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
     using DSL = DSLforSkillLogic;
     using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    namespace BloodSigilDSLExtension
+    {
+        public static class Extension
+        {
+            private const float MultiFactor = 1.5f;
+            private static int IncreaseAttack(int origin)
+            {
+                var res = (int)MathF.Ceiling(origin * MultiFactor);
+                return res;
+            }
+            public static DSL.AttackFile CompileTimeIncrease(this DSL.AttackFile af, Community self, string markName)
+            {
+                return af.WithComplieTime(last =>
+                {
+                    var marks = self.Focus.Get<Effect>().Effects;
+                    var index = marks.FindIndex(m => m.AnalyzerKey == markName);
+                    if (index == -1)
+                    {
+                        return;
+                    }
+                    last.Power = IncreaseAttack(last.Power);
+                    marks.RemoveAt(index);
+                });
+            }
+        }
+    }
     public partial class BloodSigil : MainProfession
     {
-        private readonly ClapStateVar<float> _increase = new(1f);
-        private int IncreaseAttack(int origin)
-        {
-            var res = (int)MathF.Ceiling(origin * _increase.Value);
-            _increase.Reset();
-            return res;
-        }
-        private bool BloodBladeCheck(ISkillContext sc)
+        private static bool BloodBladeCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Health>().HP > 4;
         }
         [HasAttack(4)]
         [HasRecovery]
         [Labels(Impression.Robust, Strength.Super)]
-        private IDSLSourceFile BloodBlade(ISkillContext sc)
+        private static IDSLSourceFile BloodBlade(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .LoseHP(4)
-                .WriteAttack(IncreaseAttack(6), AttackType.Instance.Physical())
+                .WriteAttack(6, AttackType.Instance.Physical())
+                    .CompileTimeIncrease(sc.Self, nameof(BloodLust))
                     .WithBloodSuck(0.75f);
             return DSL.Create(sc.Self, pen);
         }
-        private bool BloodLustCheck(ISkillContext sc)
+        private static bool BloodLustCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Health>().HP > 2;
         }
         [HasBuff]
         [Labels(Impression.Aggressive, Strength.Super)]
-        private IDSLSourceFile BloodLust(ISkillContext sc)
+        private static IDSLSourceFile BloodLust(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .LoseHP(2)
-                .WriteFree(source =>
+                .AddMark(new()
                 {
-                    _increase.Set(1.5f);
-                }, true);
+                    AnalyzerKey = nameof(BloodLust),
+                    IsMark = true,
+                    Type = EffectType.Instance.Default(),
+                    Clock = new(isInfinite: true)
+                });
             return DSL.Create(sc.Self, pen);
         }
-        private bool BloodRecoveryCheck(ISkillContext sc) => true;
+        private static bool BloodRecoveryCheck(ISkillContext sc) => true;
         [HasRecovery]
         [Labels(Impression.Conservative, Strength.Useless)]
-        private IDSLSourceFile BloodRecovery(ISkillContext sc)
+        private static IDSLSourceFile BloodRecovery(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .WriteRecovery(1);
             return DSL.Create(sc.Self, pen);
         }
-        private bool BloodShieldCheck(ISkillContext sc)
+        private static bool BloodShieldCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Health>().HP > 1;
         }
         [HasDefense]
         [Labels(Impression.Conservative, Strength.Useless)]
-        private IDSLSourceFile BloodShield(ISkillContext sc)
+        private static IDSLSourceFile BloodShield(ISkillContext sc)
         {
             int power = (int)MathF.Ceiling(0.4f * sc.Self.Focus.Get<Health>().HP);
             Pen pen = sf => sf
@@ -73,18 +98,19 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                 .WriteDefense(power, new CommonReduction());
             return DSL.Create(sc.Self, pen);
         }
-        private bool BloodRageCheck(ISkillContext sc)
+        private static bool BloodRageCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Health>().HP > 1 && sc.Self.Focus.Get<Health>().HP <= 5;
         }
         [HasAttack(5)]
         [HasRecovery]
         [Labels(Impression.Robust, Strength.Super)]
-        private IDSLSourceFile BloodRage(ISkillContext sc)
+        private static IDSLSourceFile BloodRage(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .LoseHP(1)
-                .WriteAttack(IncreaseAttack(5), AttackType.Instance.Physical())
+                .WriteAttack(5, AttackType.Instance.Physical())
+                    .CompileTimeIncrease(sc.Self, nameof(BloodLust))
                     .WithBloodSuck(1.5f);
             return DSL.Create(sc.Self, pen);
         }

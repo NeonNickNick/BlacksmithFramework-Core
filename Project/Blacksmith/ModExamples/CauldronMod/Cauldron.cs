@@ -3,10 +3,9 @@ using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
 using BlacksmithCore.Infra.Profession;
 using BlacksmithCore.Specific.Defense;
 using ModExamples.CauldronMod.Defense;
@@ -94,7 +93,7 @@ namespace ModExamples.CauldronMod
             float begin = 1f;
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Wood())
-                .WriteEffect(EffectType.Instance.AfterResolutionWritten()
+                .WriteEffect(EffectType.Instance.AfterAnalyzableDataWritten()
                             , EffectTargetType.Instance.Self()
                             , begin
                             , 3
@@ -136,12 +135,12 @@ namespace ModExamples.CauldronMod
                     {
                         new ModifierCallback((player, enemy) =>
                         {
-                            foreach(var resolution in player.Focus.Get<TurnContext>().Get<AttackResolution>())
+                            foreach(var analyzableData in player.Focus.Get<TurnContext>().Get<AttackAnalyzableData>())
                             {
-                                if(resolution.Type == AttackType.Instance.Real()
-                                && resolution.Clock.IsRinging)
+                                if(analyzableData.Type == AttackType.Instance.Real()
+                                && analyzableData.Clock.IsRinging)
                                 {
-                                    resolution.Power /= 2;
+                                    analyzableData.Power /= 2;
                                 }
                             }
                         },
@@ -150,11 +149,11 @@ namespace ModExamples.CauldronMod
                         new(remainingRounds: 4)),
                         new ModifierCallback((player, enemy) =>
                         {
-                            foreach(var resolution in player.Focus.Get<TurnContext>().Get<AttackResolution>())
+                            foreach(var analyzableData in player.Focus.Get<TurnContext>().Get<AttackAnalyzableData>())
                             {
-                                if(resolution.Clock.IsRinging)
+                                if(analyzableData.Clock.IsRinging)
                                 {
-                                    resolution.Power *= 2;
+                                    analyzableData.Power *= 2;
                                 }
                             }
                         },
@@ -205,7 +204,7 @@ namespace ModExamples.CauldronMod
                     owner.Focus.Get<Skill>().RemovePackage(nameof(ElementalArmor));
                     owner.Focus.Get<Skill>().Enable(packageNames);
                 }))
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     packageNames = source.Focus.Get<Skill>().DisableAll();
                     source.Focus.Get<Skill>().AddPackage(new(new ElementalArmor()));

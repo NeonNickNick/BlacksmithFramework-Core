@@ -1,26 +1,28 @@
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
 using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.Resolutions;
+using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
+using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Models.Particular;
+using ClapInfra.ClapUnit;
 namespace BlacksmithCore.Infra.DSL
 {
     using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
     public static class DSLforSkillLogic
     {
+        public enum SentenceType
+        {
+            Attack,
+            Defense,
+            Resource,
+            Effect,
+            Recovery,
+            Free
+        }
+       
         public class SourceFile : IDSLSourceFile
         {
-            protected enum SentenceType
-            {
-                Attack,
-                Defense,
-                Resource,
-                Effect,
-                Recovery,
-                Free
-            }
             protected enum StructureType
             {
                 Main,
@@ -32,14 +34,12 @@ namespace BlacksmithCore.Infra.DSL
                 public SentenceType SentenceType { get; }
                 public StructureType StructureType { get; }
                 public Sentence? BindSentence { get; }
-                public bool CanMove { get; } = true;
-                public Sentence(Action<Community> structure, SentenceType sentenceType, StructureType structureType, Sentence? bindSentence = null, bool canMove = true)
+                public Sentence(Action<Community> structure, SentenceType sentenceType, StructureType structureType, Sentence? bindSentence = null)
                 {
                     Structure = structure;
                     SentenceType = sentenceType;
                     StructureType = structureType;
                     BindSentence = bindSentence;
-                    CanMove = canMove;
                 }
             }
             public bool IsPassive { get; set; } = false;
@@ -59,12 +59,12 @@ namespace BlacksmithCore.Infra.DSL
             {
                 _owner = owner;
             }
-            public void Move(Community newOwner)
+            public void Move(Community newOwner, HashSet<SentenceType> filter)
             {
                 _owner = newOwner;
-                _sentences.RemoveAll(s => !s.CanMove);
+                _sentences.RemoveAll(s => filter.Contains(s.SentenceType));
             }
-            public Intent Compile(Judger? judger = null)
+            public Intent Compile(JudgeRuleManager? judgeRuleManager = null)
             {
                 List<Sentence> sentences = new(_sentences);
                 int n = _rhetoricCache.Count;
@@ -78,11 +78,11 @@ namespace BlacksmithCore.Infra.DSL
                     }
                 }
                 Action<Community> result = (a) => { };
-                if (judger != null)
+                if (judgeRuleManager != null)
                 {
                     foreach (var temp in _mutationsOnCompile)
                     {
-                        judger.JudgeRuleManager.AddJudgeRule(_owner, temp);
+                        judgeRuleManager.AddJudgeRule(_owner, temp);
                     }
                 }
                 foreach (var sentence in sentences)
@@ -91,88 +91,30 @@ namespace BlacksmithCore.Infra.DSL
                 }
                 return new Intent() { Execute = result };
             }
-            public SourceFile WriteFree(Action<Community> action, bool canMove)
+            public SourceFile WriteCompileTime(Action<Community> action)
             {
-                _sentences.Add(new(action, SentenceType.Free, StructureType.Main, canMove: canMove));
+                _sentences.Add(new(action, SentenceType.Free, StructureType.Main));
                 return this;
             }
             public AttackFile WriteAttack(
-                float power,
+                int power,
                 AttackType.CEValue attackType,
-                float APFactor = 1,
-                int delayRounds = 0
+                int delayRounds = 0,
+                float aPFactor = 1f,
+                string analyzerKey = nameof(StandardAnalyzers.DefaultAttack)
             )
             {
                 _sentences.Add(new((source) =>
                 {
-                    var resolution = new AttackResolution
+                    var analyzableData = new AttackAnalyzableData
                     {
-                        Source = source,
+                        AnalyzerKey = analyzerKey,
                         Clock = new(delayRounds: delayRounds),
                         Type = attackType,
-                        Power = power
+                        Power = power,
+                        APFactor = aPFactor
                     };
-                    resolution.Execute = (target) =>
-                    {
-                        Body main = target.Focus;
-                        if (resolution.Power <= 0f)
-                        {
-                            return;
-                        }
-                        bool ifHitArmor = false;
-                        if (resolution.Type != AttackType.Instance.Real())
-                        {
-                            var defenses = main.Get<Defense>().Get();
-                            var APList = new List<DefenseType.CEValue>()
-                            {
-                                DefenseType.Instance.ThornReduction(),
-                                DefenseType.Instance.CommonReduction(),
-                                DefenseType.Instance.StoneShell(),
-                                DefenseType.Instance.RealArmor(),
-                                DefenseType.Instance.CommonArmor()
-                            };
-                            var armorList = new List<DefenseType.CEValue>()
-                            {
-                                DefenseType.Instance.StoneShell(),
-                                DefenseType.Instance.RealArmor(),
-                                DefenseType.Instance.CommonArmor()
-                            };
-
-                            foreach (var temp in defenses)
-                            {
-                                if (!ifHitArmor && armorList.Contains(temp.Type))
-                                {
-                                    ifHitArmor = true;
-                                    resolution.RunStage(AttackStage.OnHitArmorFirstTime, main);
-                                }
-                                if (APList.Contains(temp.Type))
-                                {
-                                    resolution.Power *= APFactor;
-                                }
-                                var res = temp.Work(resolution.Source.Focus, main, (int)resolution.Power, resolution.Type);
-                                resolution.Power = res.Item1;
-                                resolution.TotalDamage += res.Item2;
-                                if (APList.Contains(temp.Type))
-                                {
-                                    resolution.Power = MathF.Ceiling(resolution.Power / APFactor);
-                                }
-                                if (resolution.Power <= 0f)
-                                {
-                                    resolution.RunStage(AttackStage.OnEnd, main);
-                                    return;
-                                }
-                            }
-                        }
-                        if (!ifHitArmor)
-                        {
-                            resolution.RunStage(AttackStage.OnHitArmorFirstTime, main);
-                        }
-                        resolution.RunStage(AttackStage.OnHitBody, main);
-                        main.Get<Health>().LoseHP((int)resolution.Power);
-                        resolution.TotalDamage += (int)resolution.Power;
-                        resolution.RunStage(AttackStage.OnEnd, main);
-                    };
-                    resolution.Source.Focus.Get<TurnContext>().WriteResolution(resolution);
+                    source.Focus.Get<TurnContext>().WriteAnalyzableData(analyzableData);
                 }, SentenceType.Attack, StructureType.Main));
                 return new(this);
             }
@@ -186,86 +128,95 @@ namespace BlacksmithCore.Infra.DSL
                 return new(this);
             }
             public DefenseFile WriteDefense(
-                float power,
-                DefenseBase defense,
-                int delayRounds = 0
+                int power,
+                DefenseEntity defense, 
+                int delayRounds = 0,
+                string analyzerKey = nameof(StandardAnalyzers.DefaultDefense)
             )
             {
                 _sentences.Add(new((source) =>
                 {
-                    var resolution = new DefenseResolution()
+                    var analyzableData = new DefenseAnalyzableData()
                     {
+                        AnalyzerKey = analyzerKey,
                         Clock = new(delayRounds: delayRounds),
                         Defense = defense,
                         Power = power
                     };
-                    resolution.Execute = (target) =>
-                    {
-                        defense.Power = (int)resolution.Power;
-                        defense.Owner = source;
-                        target.Focus.Get<Defense>().Add(resolution.Defense);
-                    };
-                    source.Focus.Get<TurnContext>().WriteResolution(resolution);
+                    source.Focus.Get<TurnContext>().WriteAnalyzableData(analyzableData);
                 }, SentenceType.Defense, StructureType.Main));
                 return new(this);
             }
             public ResourceFile WriteResource(
                 float power,
                 ResourceType.CEValue type,
-                int delayRounds = 0
+                int delayRounds = 0,
+                string analyzerKey = nameof(StandardAnalyzers.DefaultResource)
             )
             {
                 _sentences.Add(new((source) =>
                 {
-                    var resolution = new ResourceResolution()
+                    var analyzableData = new ResourceAnalyzableData()
                     {
+                        AnalyzerKey = analyzerKey,
                         Clock = new(delayRounds: delayRounds),
                         Power = power,
                         Type = type
                     };
-                    resolution.Execute = (target) =>
-                    {
-                        target.Focus.Get<Resource>().Gain(resolution.Type, resolution.Power);
-                    };
-                    source.Focus.Get<TurnContext>().WriteResolution(resolution);
+                    source.Focus.Get<TurnContext>().WriteAnalyzableData(analyzableData);
                 }, SentenceType.Resource, StructureType.Main));
                 return new(this);
             }
             public EffectFile WriteEffect(
                 EffectType.CEValue type,
                 EffectTargetType.CEValue targetType,
-                float power,
-                int duration,
-                Action<Community, Body, EffectEntity> effectAction,
-                int delayRounds = 0
+                ClapRoundClock entityClock,
+                string analyzerKey,
+                int delayRounds = 0,
+                float power = 0
                 )
             {
                 _sentences.Add(new((source) =>
                 {
-                    var resolution = new EffectResolution(new(delayRounds: delayRounds), type, targetType, power);
-                    resolution.Execute = (target) =>
+                    var analyzableData = new EffectAnalyzableData()
+                    {
+                        AnalyzerKey = analyzerKey,
+                        Clock = new(delayRounds: delayRounds),
+                        EntityClock = entityClock,
+                        Type = type,
+                        TargetType = targetType,
+                        Power = power
+                    };/*
+                    analyzableData.Execute = (target) =>
                     {
                         Body main = target.Focus;
-                        var entity = new EffectEntity(resolution.Type, resolution.Power, new(remainingRounds: duration));
+                        var entity = new EffectEntity(analyzableData.Type, analyzableData.Power, new(remainingRounds: duration));
                         entity.Execute = (body) => effectAction(source, body, entity);
                         main.Get<Effect>().Add(entity);
-                        resolution.RunStage(EffectStage.OnSuccessfullyAdded, source, main);
-                    };
-                    source.Focus.Get<TurnContext>().WriteResolution(resolution);
+                    };*/
+                    source.Focus.Get<TurnContext>().WriteAnalyzableData(analyzableData);
                 }, SentenceType.Effect, StructureType.Main));
                 return new(this);
             }
             public SourceFile UseResource(float need, ResourceType.CEValue type, bool ifCommonOnly = false)
             {
-                return WriteFree(source => source.Focus.Get<Resource>().Use(type, need, ifCommonOnly), false);
+                return WriteCompileTime(source => source.Focus.Get<Resource>().Use(type, need, ifCommonOnly));
             }
             public SourceFile LoseHP(int loss)
             {
-                return WriteFree(source => source.Focus.Get<Health>().LoseHP(loss), false);
+                return WriteCompileTime(source => source.Focus.Get<Health>().LoseHP(loss));
             }
             public SourceFile LoseMHP(int loss)
             {
-                return WriteFree(source => source.Focus.Get<Health>().LoseMHP(loss), false);
+                return WriteCompileTime(source => source.Focus.Get<Health>().LoseMHP(loss));
+            }
+            public SourceFile AddMark(EffectEntity entity)
+            {
+                entity.IsMark = true;
+                return WriteCompileTime(source =>
+                {
+                    source.Focus.Get<Effect>().Add(entity);
+                });
             }
             public SourceFile RegistCallbackOnJudge(
                 List<ICallbackOnJudge> mutations)
@@ -289,41 +240,55 @@ namespace BlacksmithCore.Infra.DSL
         }
         public class AttackFile : SourceFile
         {
-            public AttackFile WithFree(AttackStage stage, Action<Community, Body, AttackResolution> action)
+            public AttackFile WithComplieTime(Action<AttackAnalyzableData> modifier)
             {
                 _rhetoricCache.Push(new((source) =>
                 {
-                    var list = source.Focus.Get<TurnContext>().Get<AttackResolution>();
+                    var list = source.Focus.Get<TurnContext>().Get<AttackAnalyzableData>();
                     if (list.Count == 0)
                     {
                         return;
                     }
                     var last = list[^1];
-                    last.AddStage(stage, action);
+                    modifier(last);
+                }, SentenceType.Attack, StructureType.Rhetoric, _sentences[^1]));
+                return this;
+            }
+            public AttackFile WithRuntime(
+                AttackStage.CEValue stage, 
+                string analyzerKey
+            )
+            {
+                _rhetoricCache.Push(new((source) =>
+                {
+                    var list = source.Focus.Get<TurnContext>().Get<AttackAnalyzableData>();
+                    if (list.Count == 0)
+                    {
+                        return;
+                    }
+                    var last = list[^1];
+                    if(!last.StageKeys.TryGetValue(stage, out var _))
+                    {
+                        last.StageKeys[stage] = new();
+                    }
+                    last.StageKeys[stage].Add(analyzerKey);
                 }, SentenceType.Attack, StructureType.Rhetoric, _sentences[^1]));
                 return this;
             }
             public AttackFile WithBloodSuck(float percent)
             {
-                var suck = (Community source, Body target, AttackResolution resolution) =>
-                {
-                    source.Focus.Get<Health>().GainHP((int)MathF.Ceiling(resolution.Power * percent));
-                };
-                return WithFree(AttackStage.OnEnd, suck);
+                return 
+                     WithComplieTime(last => last.ExtraParams[nameof(StandardAnalyzers.DefaultBloodSuck)] = percent)
+                    .WithRuntime(
+                    AttackStage.Instance.OnEnd(), 
+                    nameof(StandardAnalyzers.DefaultBloodSuck));
             }
             public AttackFile WithInterupt()
             {
-                var interuptList = new List<ResourceType.CEValue>()
-                {
-                    ResourceType.Instance.Iron(),
-                    ResourceType.Instance.Gold_Iron(),
-                    ResourceType.Instance.Magic()
-                };
-                var interupt = (Community source, Body target, AttackResolution resolution) =>
-                {
-                    target.Get<TurnContext>().Get<ResourceResolution>().RemoveAll(r => interuptList.Contains(r.Type));
-                };
-                return WithFree(AttackStage.OnHitArmorFirstTime, interupt);
+                
+                return WithRuntime(
+                    AttackStage.Instance.OnHitArmorFirstTime(), 
+                    nameof(StandardAnalyzers.DefaultInterupt));
             }
             public AttackFile(SourceFile self) : base(self)
             {

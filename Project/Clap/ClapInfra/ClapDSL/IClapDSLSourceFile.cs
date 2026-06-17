@@ -1,14 +1,15 @@
 using ClapInfra.ClapJudgement;
 using ClapInfra.ClapJudgement.Core;
+using ClapInfra.ClapModels.Components;
 
 namespace ClapInfra.ClapDSL
 {
-    public interface IClapDSLSourceFile<TCommunity, TJudger, TJudgeRuleManager, TIntent, TIDSLSourceFile>
-        where TJudger : ClapJudger<TCommunity, TJudger, TJudgeRuleManager, TIntent, TIDSLSourceFile>
-        where TIDSLSourceFile : IClapDSLSourceFile<TCommunity, TJudger, TJudgeRuleManager, TIntent, TIDSLSourceFile>
+    public interface IClapDSLSourceFile<TCommunity, TJudgeRuleManager, TIntent, TIDSLSourceFile, TIAnalyzableData>
+        where TIDSLSourceFile : IClapDSLSourceFile<TCommunity, TJudgeRuleManager, TIntent, TIDSLSourceFile, TIAnalyzableData>
         where TIntent : ClapIntent<TCommunity>
-        where TJudgeRuleManager : ClapJudgeRuleManager<TCommunity>, new()
+        where TJudgeRuleManager : ClapJudgeRuleManager<TCommunity, TIAnalyzableData>, new()
+        where TIAnalyzableData : IClapAnalyzableData<TCommunity>
     {
-        public TIntent Compile(TJudger? judger = null);
+        public TIntent Compile(TJudgeRuleManager? judgeRuleManager = null);
     }
 }

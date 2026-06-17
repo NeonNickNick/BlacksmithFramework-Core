@@ -12,7 +12,7 @@ namespace BlacksmithClient
 
             var strategys = ModLoader.LoadByType<IAIStrategy>();
             Console.WriteLine("Welcome!\n");
-            for(int i = strategys.Count - 1; i >= 0; --i)
+            for (int i = strategys.Count - 1; i >= 0; --i)
             {
                 Console.WriteLine($"{i}.{strategys[i].GetType().Name}");
             }
@@ -35,7 +35,7 @@ namespace BlacksmithClient
 
             }
             var aipvp = new AIPVP(s2, s1);
-            var winrate  = aipvp.Start();
+            var winrate = aipvp.Start();
             Console.WriteLine($"相对GeneralStrategy胜率{winrate}%");
         }
 

@@ -23,7 +23,7 @@ namespace ModExamples.ProphetMod
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Prophet()));
             Pen pen = sf => sf
                 .UseResource(2f, ResourceType.Instance.Iron())
-                .WriteFree(source =>
+                .WriteCompileTime(source =>
                 {
                     Common.ExcludeAllProfessions(source);
                 }, false);

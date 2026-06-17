@@ -1,20 +1,22 @@
 using BlacksmithCore.Infra.Models.Core;
+using BlacksmithCore.Infra.Models.Entites;
+using ClapInfra.ClapModels.Entities;
 
 namespace BlacksmithCore.Infra.Models.Components
 {
 
-    public class Resource
+    public class Resource : IComponent<Body>
     {
         private class ResourceTemplate
         {
-            public ResourceType.CEValue CommonType { get; }
+            public ResourceType.CEValue CommonType { get;}
             public ResourceType.CEValue GoldType { get; }
             public float Common { get; set; } = 0;
             public float Gold { get; set; } = 0;
-            public void Reset()
+            public void Copy(ResourceTemplate origin)
             {
-                Common = 0;
-                Gold = 0;
+                Common = origin.Common;
+                Gold = origin.Gold;
             }
             public ResourceTemplate(ResourceType.CEValue commonType, ResourceType.CEValue goldType)
             {
@@ -71,9 +73,11 @@ namespace BlacksmithCore.Infra.Models.Components
         }
         private Dictionary<ResourceType.CEValue, ResourceTemplate> _resources = new();
         private static IReadOnlyDictionary<string, ResourceType.CEValue> _dictRef => ResourceType.EnumDict;
-        public Resource()
+        public Body Body { get; }
+        public Resource(Body body)
         {
-            List<string> enumNames = _dictRef!.Keys.ToList();
+            Body = body;
+            List<string> enumNames = _dictRef.Keys.ToList();
             string prefix = "Gold_";
             List<string> golds = enumNames.Where(e => e.StartsWith(prefix)).ToList();
             enumNames.RemoveAll(golds.Contains);
@@ -98,11 +102,11 @@ namespace BlacksmithCore.Infra.Models.Components
                 _resources[_dictRef[rest]] = template;
             }
         }
-        public void Reset()
+        public void Copy(Resource origin)
         {
-            foreach (var tmp in _resources.Values)
+            foreach (var key in _resources.Keys)
             {
-                tmp.Reset();
+                _resources[key].Copy(origin._resources[key]);
             }
         }
         public bool Check(ResourceType.CEValue type, float need, bool ifCommonOnly = false)
