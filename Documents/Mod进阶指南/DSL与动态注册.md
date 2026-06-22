@@ -3,19 +3,18 @@
 
 专门解释 `RegistCallbackOnJudge` 方法——技能如何向判定管线动态注册回调。它向特定 `JudgeStage` 注册 `ICallbackOnJudge` 的通用入口。机制原理见[判定实现](./判定实现.md)。
 
-> **HPB 关键变更**：`ICallbackOnJudge` 不再包含 `JudgeRule`（`Action<Community, Community>`）委托。改为 `AnalyzerKey` 字符串 + `IsPlayer` 标志。回调方法必须标记 `[IsAnalyzer(AnalyzerType.JudgeCallback)]`。
-
 ## 方法做了什么
 
 ```csharp
 // SourceFile 内部
-_mutationsOnCompile.Add(callbacks);
+_callbacksOnCompile.Add(callbacks);
 ```
 
 `Compile(judgeRuleManager)` 时才真正注册：
 
 ```csharp
-judgeRuleManager.AddJudgeRule(_owner, callbacks);
+// Compile 末尾追加的委托中
+judgeRuleManager.AddJudgeRule(callbacks);
 ```
 
 即：书写阶段记下来 → 编译阶段按施法者专门化 → 加入本回合判定链。
@@ -64,7 +63,7 @@ Pen pen = sf => sf
             }
         });
 
-return DSL.Create(sc.Self, pen);
+return DSL.CreateBy(pen);
 ```
 
 ### OverrideCallback（覆盖默认规则）
@@ -142,13 +141,13 @@ public static void MyCallback(Community player, Community enemy)
     if (enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>()
         .Find(a => a.Clock.IsRinging) == null) return;
 
-    DSL.Create(player, sf => sf
+    DSL.CreateBy(sf => sf
         .WriteAttack(10, AttackType.Instance.Magical()))
         .Compile().Execute(player);
 }
 ```
 
-> **HPB 变更**：`Compile()` 不再需要 `judger` 参数（参数改为可选的 `JudgeRuleManager?`）。在回调内部调用时直接 `Compile().Execute(player)`。
+在回调内部调用时直接 `Compile().Execute(player)`（不需要 `judgeRuleManager` 参数）。
 
 ## 常见模式：下回合检查 + 本回合触发
 
@@ -188,5 +187,6 @@ new()
 4. 先写最小可运行版本，再通过 `ClapRoundClock` 补持续/延迟回合和 `forceKill` 条件
 5. 修饰器用 `ModifierCallback` + `ModifierOrder`，替换默认规则用 `OverrideCallback`
 6. 使用 `IsPlayer` 标志而非依赖参数顺序——`IsPlayer` 决定执行时 player/enemy 的传递顺序
+7. 跨回合状态优先使用 Mark 系统（`AddMark`/`TakeMark`/`CountMark`），而非在回调中直接操作状态
 
 参考：`Project/Blacksmith/BlacksmithCore/Specific/BuiltInProfessions/Common.cs` 中的 Reflect 实现（完整的 ModifierCallback + AnalyzerKey 示例）。

@@ -3,8 +3,6 @@
 
 面向希望添加新职业、扩展已有职业技能或编写职业获得方式的开发者。
 
-> **HPB 注意**：本文档描述 HPB 的 DSL 签名。与 BF 的关键差异：`WriteFree` → `WriteCompileTime`、`WriteEffect` 使用 `analyzerKey` + `ClapRoundClock`、防御使用 `DefenseEntity`、自定义效果/防御需通过 `[IsAnalyzer]` 注册。迁移指南见[架构升级说明](../架构升级说明.md#8-mod-开发者迁移指南)。
-
 ## 总体流程
 
 1. 创建 `.NET 8` 类库项目，引用 `BlacksmithCore`
@@ -51,21 +49,21 @@ public interface IGameMetadata
 
 ## 技能配对规则
 
-系统自动收集 `private` 实例方法配对：
+系统自动收集方法配对：
 
 - `XxxCheck(ISkillContext)` → `bool`
 - `Xxx(ISkillContext)` → `IDSLSourceFile`
 
-技能名转小写。**必须返回 `IDSLSourceFile`，不能返回具体类 `DSL.SourceFile`**——否则编译报错。
+方法可以是 `private` 实例方法或 `private static` 方法。技能名转小写。**必须返回 `IDSLSourceFile`，不能返回具体类 `DSL.SourceFile`**——否则源生成器报编译错误。
 
 ## SkillMetadata 技能元数据
 
-HPB 提供更丰富的元数据属性（位于 `BlacksmithCore.Infra.Attributes.SkillMetadata`）：
+元数据属性位于 `BlacksmithCore.Infra.Attributes.SkillMetadata`：
 
 ```csharp
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 
-[IsProfessionSkill]  // 标记为职业技能——通常是转职入口
+[IsProfessionSkill]  // 标记为转职入口技能
 private IDSLSourceFile HolyBook(ISkillContext sc) { ... }
 
 [IsEquipmentSkill]   // 标记为装备技能
@@ -76,13 +74,29 @@ private IDSLSourceFile StarRifle(ISkillContext sc) { ... }
 private IDSLSourceFile Slash(ISkillContext sc) { ... }
 ```
 
-HPB 新增属性：`[HasAttack(float)]`、`[HasDefense]`、`[HasResource]`、`[HasRecovery]`、`[HasBuff]`、`[Labels(Impression, Strength)]`、`[IsInfinite]`。
+完整属性列表：
 
-## DSL 基础用法
+| 属性 | 说明 |
+|---|---|
+| `[HasAttack(float power)]` | 标记为攻击技能 |
+| `[HasDefense]` | 标记为防御技能 |
+| `[HasResource]` | 标记为资源技能 |
+| `[HasRecovery]` | 标记为恢复技能 |
+| `[HasBuff]` | 标记为 Buff 技能 |
+| `[IsProfessionSkill]` | 标记为转职入口技能 |
+| `[IsEquipmentSkill]` | 标记为装备技能 |
+| `[Labels(Impression, Strength)]` | 技能标签（印象 + 强度） |
+| `[IsInfinite]` | 标记为无限持续技能 |
+
+---
+
+## DSL 参考
+
+### Pen 模式
 
 ```csharp
-using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
-using DSL = DSLforSkillLogic;
+using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
+using DSL = BlacksmithDSL;
 
 private IDSLSourceFile SomeSkill(ISkillContext sc)
 {
@@ -90,37 +104,216 @@ private IDSLSourceFile SomeSkill(ISkillContext sc)
         .UseResource(1, ResourceType.Instance.Iron())
         .WriteAttack(3, AttackType.Instance.Physical());
 
-    return DSL.Create(sc.Self, pen);
+    return DSL.CreateBy(pen);
 }
 ```
 
-常用语句：
+`DSL.CreateBy(pen)` 等价于 `pen(new SourceFile())`。
 
-| 语句 | 签名（HPB） | 说明 |
-|---|---|---|
-| `WriteAttack` | `(int power, AttackType.CEValue, int delayRounds=0, float aPFactor=1f, string analyzerKey=...)` | 攻击 |
-| `WriteDefense` | `(int power, DefenseEntity defense, int delayRounds=0, string analyzerKey=...)` | 防御 |
-| `WriteResource` | `(float power, ResourceType.CEValue type, int delayRounds=0, string analyzerKey=...)` | 资源 |
-| `WriteRecovery` | `(int power)` | 回复 HP |
-| `WriteEffect` | `(EffectType.CEValue, EffectTargetType.CEValue, ClapRoundClock entityClock, string analyzerKey, int delayRounds=0, float power=0)` | 效果 |
-| `WriteCompileTime` | `(Action<Community> action)` | 编译时自由动作 |
-| `UseResource` | `(float need, ResourceType.CEValue type, bool ifCommonOnly=false)` | 消耗资源 |
-| `LoseHP` / `LoseMHP` | `(int loss)` | 扣血/扣最大 HP |
-| `AddMark` | `(EffectEntity entity)` | 添加标记效果 |
-| `WithBloodSuck` | `(float percent)` | 攻击吸血 |
-| `WithInterupt` | `()` | 攻击打断（移除铁/金铁/魔力资源数据） |
-| `WithRuntime` | `(AttackStage.CEValue stage, string analyzerKey)` | 攻击阶段钩子 |
-| `WithComplieTime` | `(Action<AttackAnalyzableData> modifier)` | 编译时修改攻击数据 |
+### Write 语句完整参考
 
-### WriteCompileTime 与 Move()
+#### WriteAttack
 
-> **HPB 变更**：`WriteFree` 被 `WriteCompileTime` 替代。语义保持一致——编译时执行的自由动作。
+```csharp
+public AttackFile WriteAttack(
+    int power,                    // 攻击力（整数）
+    AttackType.CEValue attackType,
+    int delayRounds = 0,
+    float APFactor = 1f,         // 穿甲因子
+    string analyzerKey = nameof(StandardAnalyzers.DefaultAttack),
+    Func<bool>? ifUndo = null    // 撤销条件
+)
+```
 
-`SourceFile.Move(newOwner, filter)`：更换 `_owner`，按 `SentenceType` 过滤剥离指定类型的句子。用于 Association 模式——将目标技能的 DSL 转移到自己的 SourceFile 中。
+#### WriteDefense
 
-`UseResource`、`LoseHP`、`LoseMHP` 内部是 `WriteCompileTime(...)`。
+```csharp
+public DefenseFile WriteDefense(
+    DefenseEntity defense,       // 防御实体（Power 在实体上设置）
+    int delayRounds = 0,
+    string analyzerKey = nameof(StandardAnalyzers.DefaultDefense),
+    Func<bool>? ifUndo = null
+)
+```
 
-### 自定义效果（HPB 新增）
+注意：`power` 直接在 `DefenseEntity` 上设置（如 `new CommonArmor { Power = 5 }`）。
+
+#### WriteResource
+
+```csharp
+public ResourceFile WriteResource(
+    float power,                 // 资源量（浮点）
+    ResourceType.CEValue type,
+    int delayRounds = 0,
+    string analyzerKey = nameof(StandardAnalyzers.DefaultResource),
+    Func<bool>? ifUndo = null
+)
+```
+
+#### WriteEffect
+
+```csharp
+public EffectFile WriteEffect(
+    EffectType.CEValue type,           // 触发阶段（如 AfterAnalyzableDataWritten）
+    EffectTargetType.CEValue targetType, // 己方或敌方
+    ClapRoundClock entityClock,        // 效果实体的生命周期
+    string analyzerKey,                // 分析器键（无默认值，必须指定）
+    int delayRounds = 0,
+    float power = 0,
+    Func<bool>? ifUndo = null
+)
+```
+
+#### WriteRecovery
+
+```csharp
+public RecoveryFile WriteRecovery(
+    int power,
+    Func<bool>? ifUndo = null
+)
+```
+
+直接回复 HP（编译时执行，不经过分析器）。
+
+### WriteFree 与便捷方法
+
+```csharp
+public SourceFile WriteFree(Action<Community> action, Func<bool>? ifUndo = null)
+```
+
+以下便捷方法内部实现为 `WriteFree`：
+
+| 方法 | 说明 |
+|---|---|
+| `UseResource(need, type)` | 消耗资源 |
+| `LoseHP(loss)` | 扣除 HP |
+| `LoseMHP(loss)` | 扣除最大 HP |
+| `AddMark(markName)` | 写入标记 |
+| `TakeMark(markName, out Lazy<int>)` | 取出标记并计数 |
+| `CountMark(markName, out Lazy<int>)` | 只计数不移除 |
+| `RegistCallbackOnJudge(callbacks)` | 注册动态判定回调 |
+
+### AttackFile 链式方法
+
+#### WithModify
+
+```csharp
+public AttackFile WithModify(Action<AttackAnalyzableData> modifier)
+```
+
+修改同一回合最近写入的 `AttackAnalyzableData`。作为修辞挂载到对应 WriteAttack 之后执行。
+
+#### WithCallback
+
+```csharp
+public AttackFile WithCallback(AttackStage.CEValue stage, string analyzerKey)
+```
+
+在攻击结算的特定阶段触发分析器。三个阶段：
+
+| AttackStage | 触发时机 |
+|---|---|
+| `OnHitArmorFirstTime` | 首次命中护甲时 |
+| `OnHitBody` | 穿透所有防御后、扣血前 |
+| `OnEnd` | 攻击结算完毕后 |
+
+#### WithBloodSuck
+
+```csharp
+public AttackFile WithBloodSuck(float percent)
+```
+
+攻击结算后按 `TotalDamage * percent` 吸血。等价于 `WithModify` + `WithCallback(OnEnd, DefaultBloodSuck)`。
+
+#### WithInterupt
+
+```csharp
+public AttackFile WithInterupt()
+```
+
+首次命中护甲时移除对手的 Iron/Gold_Iron/Magic 资源数据。等价于 `WithCallback(OnHitArmorFirstTime, DefaultInterupt)`。
+
+### ifUndo 撤销机制
+
+所有 Write 方法和便捷方法都接受可选的 `ifUndo` 参数。当 `Intent.Execute` 执行到该 Sentence 时，若 `ifUndo()` 返回 `true`，该语句被跳过。
+
+```csharp
+.WriteAttack(3, AttackType.Instance.Physical(), ifUndo: () => someCondition)
+```
+
+---
+
+## Mark 系统
+
+Mark 是存储于 Effect 组件的无限期 `EffectEntity`（`IsMark = true`），按 `AnalyzerKey`（即 markName）标识。它是跨回合状态管理的核心机制，替代了传统的状态变量。
+
+### DSL 链式方法（声明时注册，执行时生效）
+
+**AddMark** — 写入一个标记：
+```csharp
+sf.AddMark("MyMark")
+```
+
+**TakeMark** — 取出所有同名标记并返回数量：
+```csharp
+sf.TakeMark("MyMark", out Lazy<int> layerNum)
+
+// 批量版本
+sf.TakeMark(new HashSet<string> { "MarkA", "MarkB" }, out Lazy<IReadOnlyDictionary<string, int>> layerNums)
+```
+
+**CountMark** — 只计数不移除：
+```csharp
+sf.CountMark("MyMark", out Lazy<int> layerNum)
+```
+
+### Body 扩展方法（立即执行）
+
+在 Analyzer 或 JudgeCallback 内部（已在执行阶段）可使用 Body 扩展方法：
+
+```csharp
+body.AddMark("MyMark")                      // 立即写入
+int count = body.CountMark("MyMark")        // 立即计数
+int taken = body.TakeMark("MyMark")         // 立即取出
+```
+
+### ★ 数据冒险
+
+`out Lazy<T>` 是一个延迟求值包装器。其值仅在 `Intent.Execute` 执行到达对应 Sentence 时才可用。**在 Pen 声明阶段或 Sentence 尚未执行时访问 `.Value` 会抛出 `InvalidOperationException`。**
+
+**错误**——在声明阶段访问：
+```csharp
+Pen pen = sf =>
+{
+    sf.TakeMark("myMark", out var layerNum);
+    int count = layerNum.Value;  // ❌ 抛出异常：标记数据尚未计算
+    return sf.WriteAttack(count, AttackType.Instance.Physical());
+};
+```
+
+**正确**——在延迟执行的 lambda 中访问：
+```csharp
+Pen pen = sf => sf
+    .TakeMark(nameof(TripleStrike), out var layerNum)
+    .WriteAttack(11, AttackType.Instance.Physical())
+        .WithModify(last => last.Power += layerNum.Value);  // ✅ 执行到达此处时 TakeMark 已完成
+```
+
+`WithModify` 作为修辞被插入到 WriteAttack 之后执行。在 `WithModify` 的 lambda 中，`TakeMark` 的 Sentence 已经执行完毕，`layerNum.Value` 安全可用。
+
+同理，`ifUndo` 的 lambda 也在执行阶段求值，可安全访问 Mark 数据：
+
+```csharp
+.TakeMark(new HashSet<string> { "FireMark", "IceMark" }, out var layerNums)
+.WriteAttack(3, AttackType.Instance.Physical(),
+    ifUndo: () => layerNums.Value["FireMark"] <= 0)   // ✅ 执行时求值
+```
+
+---
+
+## 自定义效果
+
+效果通过 `[IsAnalyzer(AnalyzerType.DSL)]` 注册，在 `WriteEffect` 中通过 `analyzerKey` 引用：
 
 ```csharp
 // 1. 定义 Analyzer
@@ -128,33 +321,45 @@ private IDSLSourceFile SomeSkill(ISkillContext sc)
 public static void MyEffect(Community player, Community enemy, IAnalyzableData data)
 {
     var effect = (EffectAnalyzableData)data;
-    // 效果逻辑：例如对 enemy 造成伤害
+    // 效果逻辑：例如对 enemy 造成持续伤害
     enemy.Focus.Get<Health>().LoseHP((int)effect.Power);
 }
 
-// 2. 在 WriteEffect 中引用
+// 2. 在 DSL 中引用
 Pen pen = sf => sf.WriteEffect(
     EffectType.Instance.AfterAnalyzableDataWritten(),
     EffectTargetType.Instance.Enemy(),
-    new ClapRoundClock(remainingRounds: 3),  // entityClock
+    new ClapRoundClock(remainingRounds: 3),  // entityClock：持续 3 回合
     analyzerKey: nameof(MyEffect),
     power: 5
 );
 ```
 
-### 自定义防御（HPB 新增）
+`entityClock` 控制效果的持续时间。效果触发阶段由 `EffectType` 决定（如 `AfterAnalyzableDataWritten`、`AfterTransport`、`AfterResult` 等）。`TargetType` 决定作用对象（`Self` 或 `Enemy`）。
+
+## 自定义防御
+
+防御通过 `DefenseEntity` 子类（纯数据声明）+ `[IsAnalyzer(AnalyzerType.Defense)]` 注册：
 
 ```csharp
-// 1. 定义 DefenseEntity 子类（仅数据声明）
+// 1. 扩展 DefenseType 枚举（如果需要新类型）
+[IsBlacksmithEnumModifier]
+public static class DefenseExtension
+{
+    [IsBlacksmithEnumMember(64)]
+    public static DefenseType.CEValue MyArmor(this DefenseType dt) => DefenseType.GetCEValue();
+}
+
+// 2. 定义 DefenseEntity 子类（仅数据声明——无需 Work() 方法）
 public class MyCustomDefense : DefenseEntity
 {
     public override string AnalyzerKey { get; init; } = nameof(MyDefenseAnalyzer);
-    public override DefenseType.CEValue Type { get; init; } = MyDefenseType.Instance.Value;
+    public override DefenseType.CEValue Type { get; init; } = MyArmorType;
     public override int Power { get; set; } = 0;
     public override ClapRoundClock Clock { get; init; } = new(isInfinite: true);
 }
 
-// 2. 注册 Analyzer
+// 3. 注册防御分析器
 [IsAnalyzer(AnalyzerType.Defense)]
 public static void MyDefenseAnalyzer(Community player, Community enemy, 
     DefenseEntity defense, AttackAnalyzableData attackData)
@@ -164,11 +369,52 @@ public static void MyDefenseAnalyzer(Community player, Community enemy,
     attackData.TotalDamage += damage;
 }
 
-// 3. 在 DSL 中使用
-Pen pen = sf => sf.WriteDefense(5, new MyCustomDefense());
+// 4. 在 DSL 中使用
+Pen pen = sf => sf.WriteDefense(new MyCustomDefense { Power = 5 });
 ```
 
-## 示例一：最小主职业
+内置防御分析器参考（可直接复用）：
+
+| AnalyzerKey | 行为 |
+|---|---|
+| `nameof(StandardAnalyzers.DefaultArmor)` | 护甲吸收，值同步减少 |
+| `nameof(StandardAnalyzers.DefaultReduction)` | 减伤，值不减少 |
+| `nameof(StandardAnalyzers.ThornReduction)` | 吸收 + 反弹 50% 魔法伤害 |
+| `nameof(StandardAnalyzers.MagicalImmunity)` | 魔法免疫 |
+| `nameof(StandardAnalyzers.PhysicalImmunity)` | 物理免疫 |
+| `nameof(StandardAnalyzers.PercentageReduction)` | 百分比减伤 |
+
+---
+
+## Dynamic Registration 动态注册
+
+技能可以向判定管线注册临时回调，在特定阶段插入额外逻辑：
+
+```csharp
+[IsAnalyzer(AnalyzerType.JudgeCallback)]
+public static void MyCallback(Community player, Community enemy) { ... }
+
+Pen pen = sf => sf
+    .RegistCallbackOnJudge(new()
+    {
+        new ModifierCallback()
+        {
+            AnalyzerKey = nameof(MyCallback),
+            Stage = JudgeStage.Instance.OnApplyingEffect(),
+            Clock = new(),                    // 本回合生效
+            IsPlayer = sc.Self.IsPlayer,
+            ModifierOrder = ModifierOrder.Before
+        }
+    });
+```
+
+详见 [DSL与动态注册](../Mod进阶指南/DSL与动态注册.md)。
+
+---
+
+## 完整示例
+
+### 示例一：最小主职业
 
 ```csharp
 public class MyProfession : MainProfession
@@ -188,12 +434,12 @@ public class MyProfession : MainProfession
             .WriteAttack(3, AttackType.Instance.Magical())
                 .WithBloodSuck(0.5f);
 
-        return DSL.Create(sc.Self, pen);
+        return DSL.CreateBy(pen);
     }
 }
 ```
 
-## 示例二：Common 修改器提供转职入口
+### 示例二：Common 修改器提供转职入口
 
 ```csharp
 [IsProfessionModifier(nameof(Common))]
@@ -211,32 +457,32 @@ public partial class CommonModifier : ProfessionModifier
 
         Pen pen = sf => sf
             .UseResource(2, ResourceType.Instance.Iron())
-            .WriteCompileTime(source => Common.ExcludeAllProfessions(source));
+            .WriteFree(source => Common.ExcludeAllProfessions(source));
 
-        return DSL.Create(sc.Self, pen);
+        return DSL.CreateBy(pen);
     }
 }
 ```
 
-> **HPB 变更**：`WriteFree(action, canMove: false)` → `WriteCompileTime(action)`。`WriteCompileTime` 在 `Move()` 时默认随 filter 剥离。
-
-## Modifier 访问目标职业私有状态（UnsafeAccessor）
-
-机制不变——`ModifierBindingGenerator` 两阶段源生成器使 Modifier 零开销直接读写目标 MainProfession 的私有字段。
+### 示例三：使用 Mark 系统的技能（钢炮三连击模式）
 
 ```csharp
-[IsProfessionModifier(nameof(Common))]
-public partial class CommonModifier : ProfessionModifier
+private static bool TripleStrikeCheck(ISkillContext sc)
 {
-    // _pending 是 Driver/Cannon 的 private 字段！
-    // 源生成器自动生成了对应的 public ref 字段和 Bind() 实现
+    return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
+}
 
-    [IsProfessionSkill]
-    private IDSLSourceFile WineGlass(ISkillContext sc)
-    {
-        sc.Self.Focus.Get<Skill>().AddPackage(new(new WineGlass()));
-        return DSL.Create(sc.Self, pen);
-    }
+private static IDSLSourceFile TripleStrike(ISkillContext sc)
+{
+    Pen pen = sf => sf
+        .UseResource(3, ResourceType.Instance.Iron())
+        .TakeMark(nameof(TripleStrike), out var layerNum)   // 取出之前的叠层
+        .WriteAttack(11, AttackType.Instance.Physical())
+            .WithModify(last => last.Power += layerNum.Value)  // 攻击力 + 叠层数
+        .WriteResource(0.5f, ResourceType.Instance.Iron())
+        .AddMark(nameof(TripleStrike));                       // 重新写入叠层
+
+    return DSL.CreateBy(pen);
 }
 ```
 
@@ -247,10 +493,11 @@ public partial class CommonModifier : ProfessionModifier
 ```csharp
 public override IDSLSourceFile PassiveSkillImpl(ISkillContext sc)
 {
-    Pen pen = sf => sf.WriteDefense(1, new RealReduction());
-    return DSL.Create(sc.Self, pen);
+    Pen pen = sf => sf.WriteDefense(new RealReduction { Power = 1 });
+    return DSL.CreateBy(pen);
 }
 ```
+
 
 ## 注意事项
 
@@ -260,13 +507,15 @@ public override IDSLSourceFile PassiveSkillImpl(ISkillContext sc)
 4. 技能名全小写，手动 `AddSkill`/`RemoveSkill` 也用全小写
 5. 多个 Mod 同名技能 → 后写覆盖；同名职业 → 抛异常
 6. `Common` 是真实职业包，修改它是提供转职入口的最常见方式
-7. **HPB**：攻击/防御 Power 为 `int`，资源 Power 为 `float`
-8. **HPB**：自定义防御继承 `DefenseEntity`（不是 `DefenseBase`），不需要实现 `Work()` 方法
-9. **HPB**：自定义效果使用 `[IsAnalyzer(AnalyzerType.DSL)]` 注册，`WriteEffect` 引用 `analyzerKey`
-10. **HPB**：`Compile(JudgeRuleManager?)` 替代 `Compile(Judger?)`
+7. 攻击/防御 Power 为 `int`，资源 Power 为 `float`
+8. 自定义防御继承 `DefenseEntity`，不需要实现 `Work()` 方法
+9. 自定义效果使用 `[IsAnalyzer(AnalyzerType.DSL)]` 注册，`WriteEffect` 引用 `analyzerKey`
+10. Mark 的 `out Lazy<T>.Value` 只能在执行阶段的延迟 lambda 中访问，声明阶段不可用
+11. `[HasAttack]` 的 power 参数为 `float` 类型
 
 ## 参考
 
 - `Project/Blacksmith/ModExamples/HolyBookMod/`
-- `Project/Blacksmith/ModExamples/PhantomBookMod/` — Association 模式
-- [架构升级说明 - Mod 开发者迁移指南](../架构升级说明.md#8-mod-开发者迁移指南) — BF → HPB 迁移模式
+- `Project/Blacksmith/ModExamples/PhantomBookMod/` — 子职业/装备技能模式
+- `Project/Blacksmith/BlacksmithCore/Specific/BuiltInProfessions/Cannon.cs` — Mark 系统完整示例
+- `Project/Blacksmith/BlacksmithCore/Specific/BuiltInProfessions/Lancer.cs` — 复杂 Mark + ifUndo 模式

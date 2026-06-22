@@ -1,6 +1,6 @@
-# 《打铁》核心规则手册 v1.3
+# 《打铁》核心规则手册
 
-> 核对最新实现、技能数值或职业细节，请以 `Project/Blacksmith/BlacksmithCore` 下实际代码为准。Mod 示例职业以 `Project/Blacksmith/ModExamples/` 下实际代码为准。
+> 核对最新实现、技能数值或职业细节，请以 `Project/Blacksmith/BlacksmithCore/Specific/BuiltInProfessions/` 下实际代码为准。Mod 示例职业以 `Project/Blacksmith/ModExamples/` 下实际代码为准。
 
 ---
 

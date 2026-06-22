@@ -150,9 +150,6 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern));
             return DSL.CreateBy(pen);
         }
-        private ClapStateVar<int> _chargeCount = new(0);
-        private ClapStateVar<int> _chargeCost = new(4);
-        private ClapStateVar<bool> _wasPassive = new(false);
         private static bool RisingDragonCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), sc.Self.Focus.CountMark(nameof(Charge)) > 0 ? 0 : 4);

@@ -57,6 +57,14 @@ namespace ClapSourceGenerators.SkillRegistration
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        private static readonly DiagnosticDescriptor BothAnalyzerAndAliasRule = new(
+            id: "CLAP009",
+            title: "Method cannot have both [IsAnalyzer] and [IsAnalyzerAlias]",
+            messageFormat: "Method '{0}' has both [IsAnalyzer] and [IsAnalyzerAlias] attributes. A method cannot serve as both an analyzer and an alias.",
+            category: "ClapAnalyzerRegistration",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var provider = context.SyntaxProvider
@@ -134,6 +142,23 @@ namespace ClapSourceGenerators.SkillRegistration
                         if (nsValidationResult != null)
                             diagnostics.Add(nsValidationResult);
                     }
+                    continue;
+                }
+
+                // Both [IsAnalyzer] and [IsAnalyzerAlias] on the same method —
+                // a method cannot serve as both, and the name would be registered twice.
+                if (isAnalyzerAttr != null && isAnalyzerAliasAttr != null)
+                {
+                    diagnostics.Add(new AnalyzerDiagnosticInfo(
+                        AnalyzerDiagnosticKind.BothAnalyzerAndAlias,
+                        method.Locations.FirstOrDefault(),
+                        method.Name));
+                    diagnostics.Add(new AnalyzerDiagnosticInfo(
+                        AnalyzerDiagnosticKind.DuplicateAnalyzerName,
+                        method.Locations.FirstOrDefault(),
+                        method.Name,
+                        packageKind.ToString(),
+                        method.Name));
                     continue;
                 }
 
@@ -410,30 +435,40 @@ namespace ClapSourceGenerators.SkillRegistration
                 }
             }
 
-            // Alias name dedup within PackageKind — aliases must not conflict with
-            // analyzer names or other alias names in the same package kind.
-            var firstAliasByKind = new Dictionary<(PackageKind, string), AnalyzerPackageInfo>();
-            var duplicateAliases = new HashSet<(PackageKind Kind, string AliasName, AnalyzerPackageInfo Package)>();
-            var aliasConflictsWithAnalyzer = new HashSet<(PackageKind Kind, string AliasName, AnalyzerPackageInfo Package)>();
+            // Alias name dedup within PackageKind — ALL aliases (resolved + unresolved)
+            // must not conflict with analyzer names or other alias names.
+            var firstAliasByKind = new Dictionary<(PackageKind, string), (string ClassName, Location? Location)>();
 
             foreach (var info in mergedByClass.Values)
             {
-                foreach (var alias in info.ResolvedAliases)
+                foreach (var alias in info.AliasMethods)
                 {
                     var key = (info.PackageKind, alias.AliasName);
 
                     // Conflict: alias name matches an [IsAnalyzer] name in the same PackageKind
                     if (globalAnalyzerMap.ContainsKey(key))
-                        aliasConflictsWithAnalyzer.Add((info.PackageKind, alias.AliasName, info));
+                    {
+                        info.Diagnostics.Add(new AnalyzerDiagnosticInfo(
+                            AnalyzerDiagnosticKind.DuplicateAnalyzerName,
+                            alias.Location,
+                            alias.AliasName,
+                            info.PackageKind.ToString(),
+                            alias.AliasName));
+                    }
 
                     // Conflict: alias name duplicates another alias in the same PackageKind
-                    if (firstAliasByKind.TryGetValue(key, out var firstAliasPackage))
+                    if (firstAliasByKind.TryGetValue(key, out var firstSeen))
                     {
-                        duplicateAliases.Add((info.PackageKind, alias.AliasName, info));
+                        info.Diagnostics.Add(new AnalyzerDiagnosticInfo(
+                            AnalyzerDiagnosticKind.DuplicateAnalyzerName,
+                            alias.Location,
+                            alias.AliasName,
+                            info.PackageKind.ToString(),
+                            $"{firstSeen.ClassName}.{alias.AliasName}"));
                     }
                     else
                     {
-                        firstAliasByKind[key] = info;
+                        firstAliasByKind[key] = (info.ClassName, alias.Location);
                     }
                 }
             }
@@ -451,6 +486,8 @@ namespace ClapSourceGenerators.SkillRegistration
                         AnalyzerDiagnosticKind.AliasTargetNotFound => AliasTargetNotFoundRule,
                         AnalyzerDiagnosticKind.MustBeStatic => MustBeStaticRule,
                         AnalyzerDiagnosticKind.MustBePublic => MustBePublicRule,
+                        AnalyzerDiagnosticKind.BothAnalyzerAndAlias => BothAnalyzerAndAliasRule,
+                        AnalyzerDiagnosticKind.DuplicateAnalyzerName => DuplicateAnalyzerNameRule,
                         _ => WrongReturnTypeRule // fallback
                     };
 
@@ -478,34 +515,6 @@ namespace ClapSourceGenerators.SkillRegistration
                         ctx.ReportDiagnostic(Diagnostic.Create(
                             DuplicateAnalyzerNameRule, loc,
                             method.MethodName, info.PackageKind.ToString(), firstSeen.MethodName));
-                    }
-                }
-
-                // Report alias dedup diagnostics
-                foreach (var alias in info.ResolvedAliases)
-                {
-                    var aliasLoc = alias.Location
-                        ?? Location.Create(info.FilePath, new Microsoft.CodeAnalysis.Text.TextSpan(0, 0),
-                            new Microsoft.CodeAnalysis.Text.LinePositionSpan(
-                                new Microsoft.CodeAnalysis.Text.LinePosition(0, 0),
-                                new Microsoft.CodeAnalysis.Text.LinePosition(0, 0)));
-
-                    // Alias name conflicts with an [IsAnalyzer] name in the same PackageKind
-                    if (aliasConflictsWithAnalyzer.Contains((info.PackageKind, alias.AliasName, info)))
-                    {
-                        ctx.ReportDiagnostic(Diagnostic.Create(
-                            DuplicateAnalyzerNameRule, aliasLoc,
-                            alias.AliasName, info.PackageKind.ToString(), alias.AliasName));
-                    }
-
-                    // Alias name conflicts with another alias in the same PackageKind
-                    if (duplicateAliases.Contains((info.PackageKind, alias.AliasName, info)))
-                    {
-                        var firstPackage = firstAliasByKind[(info.PackageKind, alias.AliasName)];
-                        ctx.ReportDiagnostic(Diagnostic.Create(
-                            DuplicateAnalyzerNameRule, aliasLoc,
-                            alias.AliasName, info.PackageKind.ToString(),
-                            $"{firstPackage.ClassName}.{alias.AliasName}"));
                     }
                 }
 
@@ -577,7 +586,9 @@ namespace ClapSourceGenerators.SkillRegistration
             WrongParameterSignature,
             AliasTargetNotFound,
             MustBeStatic,
-            MustBePublic
+            MustBePublic,
+            DuplicateAnalyzerName,
+            BothAnalyzerAndAlias
         }
 
         internal sealed class AnalyzerDiagnosticInfo
