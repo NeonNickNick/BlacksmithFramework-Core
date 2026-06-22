@@ -9,7 +9,7 @@ namespace BlacksmithCore.Infra.DSL
 {
     public partial class StandardAnalyzers : MainProfession
     {
-        [IsAnalyzer]
+        [IsAnalyzer(AnalyzerType.DSL)]
         public static void DefaultAttack(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             var attackData = (AttackAnalyzableData)analyzableData;
@@ -101,14 +101,14 @@ namespace BlacksmithCore.Infra.DSL
                 AnalyzerRegistry.DSL.Get(key)(player, enemy, analyzableData);
             }
         }
-        [IsAnalyzer]
+        [IsAnalyzer(AnalyzerType.DSL)]
         public static void DefaultBloodSuck(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             var attackData = (AttackAnalyzableData)analyzableData;
             var percent = attackData.ExtraParams[nameof(DefaultBloodSuck)];
             player.Focus.Get<Health>().GainHP((int)MathF.Ceiling(attackData.TotalDamage * percent));
         }
-        [IsAnalyzer]
+        [IsAnalyzer(AnalyzerType.DSL)]
         public static void DefaultInterupt(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             var interuptList = new List<ResourceType.CEValue>()
@@ -120,14 +120,14 @@ namespace BlacksmithCore.Infra.DSL
             enemy.Focus.Get<TurnContext>().Get<ResourceAnalyzableData>().RemoveAll(r => interuptList.Contains(r.Type));
         }
 
-        [IsAnalyzer]
+        [IsAnalyzer(AnalyzerType.DSL)]
         public static void DefaultResource(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             var resourceData = (ResourceAnalyzableData)analyzableData;
 
             player.Focus.Get<Resource>().Gain(resourceData.Type, resourceData.Power);
         }
-        [IsAnalyzer]
+        [IsAnalyzer(AnalyzerType.DSL)]
         public static void DefaultDefense(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             var defenseData = (DefenseAnalyzableData)analyzableData;

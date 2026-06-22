@@ -17,6 +17,7 @@ namespace BlacksmithCore.Infra.Models.Entites
         }
         public Body Focus { get; set; }
         public bool IsPlayer { get; private set; }
+        public string CurrentSkillName { get; set; } = null!;
         public List<Body> SummonList { get; private set; } = new();
         private List<Unit> _transforms = new();
         private Dictionary<Body, Action> _callbacks = new();

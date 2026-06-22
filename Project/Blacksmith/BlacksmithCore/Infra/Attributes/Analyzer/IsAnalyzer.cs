@@ -12,7 +12,7 @@ namespace BlacksmithCore.Infra.Attributes.Analyzer
     public class IsAnalyzer : Attribute
     {
         public readonly AnalyzerType Type;
-        public IsAnalyzer(AnalyzerType type = AnalyzerType.DSL)
+        public IsAnalyzer(AnalyzerType type)
         {
             Type = type;
         }

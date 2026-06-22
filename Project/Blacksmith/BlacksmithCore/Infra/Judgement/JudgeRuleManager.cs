@@ -19,7 +19,7 @@ namespace BlacksmithCore.Infra.Judgement
     {
         public class StageRuleContainer
         {
-            
+
             private readonly Action<Community, Community> _baseRule;
             private readonly List<RuleUnit> _overrideRules = new();
             public readonly List<RuleUnit> _modifiersBefore = new();
@@ -293,7 +293,7 @@ namespace BlacksmithCore.Infra.Judgement
             }
         }
 
-        public void AddJudgeRule(Community source, IEnumerable<ICallbackOnJudge> callbacks)
+        public void AddJudgeRule(IEnumerable<ICallbackOnJudge> callbacks)
         {
             foreach (var callback in callbacks)
             {

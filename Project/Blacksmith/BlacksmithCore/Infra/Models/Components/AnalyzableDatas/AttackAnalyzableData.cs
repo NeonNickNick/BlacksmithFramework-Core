@@ -37,7 +37,7 @@ namespace BlacksmithCore.Infra.Models.Components.AnalyzableDatas
                 APFactor = APFactor,
                 TotalDamage = TotalDamage,
                 StageKeys = StageKeys.ToDictionary(
-                    s => s.Key, 
+                    s => s.Key,
                     s => new List<string>(s.Value)),
                 ExtraParams = ExtraParams.ToDictionary()
             };

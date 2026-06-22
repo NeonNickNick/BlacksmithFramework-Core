@@ -9,8 +9,8 @@ using BlacksmithCore.Infra.Profession;
 
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Warlock : MainProfession
     {
         private static bool MagicCheck(ISkillContext sc)
@@ -24,7 +24,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
                 .WriteResource(1, ResourceType.Instance.Magic());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool MagicAttackCheck(ISkillContext sc)
@@ -43,7 +43,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                 .WriteAttack(2 * sc.Param, AttackType.Instance.Physical(), delayRounds: 0)
                 .WriteAttack(2 * sc.Param, AttackType.Instance.Physical(), delayRounds: 1)
                 .WriteAttack(2 * sc.Param, AttackType.Instance.Physical(), delayRounds: 2);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private bool MuteCheck(ISkillContext sc) => true;
@@ -56,10 +56,10 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                EffectTargetType.Instance.Enemy(),
                new(),
                nameof(MuteEffectAnalyzer));
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
-        [IsAnalyzer]
-        private static void MuteEffectAnalyzer(Community player, Community enemy, IAnalyzableData analyzableData)
+        [IsAnalyzer(AnalyzerType.DSL)]
+        public static void MuteEffectAnalyzer(Community player, Community enemy, IAnalyzableData analyzableData)
         {
             enemy.Focus.Get<TurnContext>().Get<ResourceAnalyzableData>().RemoveAll(r => r.Type == ResourceType.Instance.Space() || r.Type == ResourceType.Instance.Time());
         }
@@ -84,7 +84,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     Clock = new()
                 })
                 .WriteResource(1.5f, ResourceType.Instance.Iron());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool AlchemyCheck(ISkillContext sc)
@@ -97,12 +97,12 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
             Pen pen = sf => sf
                 .UseResource(2.5f, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     source.Focus.Get<Skill>().RemoveSkill(nameof(Warlock), nameof(Alchemy).ToLower());
                     source.Focus.Get<Skill>().AddPackage(new(new Alchemy()));
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

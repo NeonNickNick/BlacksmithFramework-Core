@@ -1,4 +1,6 @@
-/*using BlacksmithCore.Infra.Attributes.SkillMetadata;
+using System.Runtime.CompilerServices;
+using BlacksmithCore.Infra.Attributes.Analyzer;
+using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Judgement;
 using BlacksmithCore.Infra.Judgement.Core;
@@ -7,60 +9,66 @@ using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
 using BlacksmithCore.Infra.Models.Core;
 using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
-using BlacksmithCore.Specific.Defense;
 using BlacksmithCore.Infra.Utils;
+using BlacksmithCore.Specific.BuiltInProfessions.LancerDSLExtension;
 
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
-    public partial class Lancer : MainProfession
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
+    namespace LancerDSLExtension
     {
-        private readonly ClapStateVar<bool> _fire = new(false);
-        private readonly ClapStateVar<bool> _ice = new(false);
-        private readonly Pen _icePen = sf => sf
-            .WriteDefense(2, new CommonArmor());
-        private readonly ClapStateVar<bool> _light = new(false);
-        private readonly Pen _lightPen = sf => sf
-            .WriteRecovery(2);
-        private readonly ClapStateVar<bool> _dark = new(false);
-        private readonly Pen _darkPen = sf => sf
-            .LoseMHP(1)
-            .WriteAttack(1, AttackType.Instance.Real(), delayRounds: 0)
-            .WriteAttack(1, AttackType.Instance.Real(), delayRounds: 1);
-
-
-        private int Fire()
+        public static class Extension
         {
-            if (_fire.Value)
+            public static DSL.AttackFile WriteLancerAttack(
+                this DSL.SourceFile af,
+                int power,
+                AttackType.CEValue attackType,
+                float APFactor = 1,
+                [CallerMemberName] string skillName = "")
             {
-                _fire.Reset();
-                return 2;
-            }
-            else
-            {
-                return 0;
+                af.TakeMark(
+                    new HashSet<string>()
+                    {
+                    Lancer.Keys.SkyStrike,
+                    Lancer.Keys.DragonTooth,
+                    Lancer.Keys.TyrantDestruction,
+                    Lancer.Keys.TripleStab
+                    }, out var layerNums)
+                    .WriteDefense(new()
+                    {
+                        Name = Lancer.Keys.DragonTooth,
+                        AnalyzerKey = nameof(StandardAnalyzers.DefaultArmor),
+                        Type = DefenseType.Instance.CommonArmor(),
+                        Power = 2,
+                        Clock = new()
+                    },
+                    ifUndo: () => layerNums.Value[Lancer.Keys.DragonTooth] <= 0)
+                    .WriteRecovery(2, ifUndo: () => layerNums.Value[Lancer.Keys.TyrantDestruction] <= 0)
+                    .LoseMHP(1, ifUndo: () => layerNums.Value[Lancer.Keys.TripleStab] <= 0)
+                    .WriteAttack(1, AttackType.Instance.Real(), 
+                    delayRounds: 0, ifUndo: () => layerNums.Value[Lancer.Keys.TripleStab] <= 0)
+                    .WriteAttack(1, AttackType.Instance.Real(), 
+                    delayRounds: 1, ifUndo: () => layerNums.Value[Lancer.Keys.TripleStab] <= 0);
+                return af.WriteAttack(power, attackType, APFactor: APFactor, analyzerKey: skillName)
+                            .WithModify(last => last.Power += layerNums.Value[Lancer.Keys.SkyStrike] * 2);
             }
         }
-        private Pen Others(Pen pen)
+    }
+    public partial class Lancer : MainProfession
+    {
+        public static class Keys
         {
-            var res = pen;
-            if (_ice.Value)
-            {
-                _ice.Reset();
-                res += _icePen;
-            }
-            if (_light.Value)
-            {
-                _light.Reset();
-                res += _lightPen;
-            }
-            if (_dark.Value)
-            {
-                _dark.Reset();
-                res += _darkPen;
-            }
-            return res;
+            public const string SkyStrike = nameof(SkyStrike);
+            public const string DragonTooth = nameof(DragonTooth);
+            public const string TyrantDestruction = nameof(TyrantDestruction);
+            public const string TripleStab = nameof(TripleStab);
+            public const string CounterAttack = "Counterattack";
+        }
+        [IsAnalyzer(AnalyzerType.DSL)]
+        public static void GetPattern(Community player, Community enemy, IAnalyzableData analyzableData)
+        {
+            player.Focus.AddMark(analyzableData.AnalyzerKey);
         }
         private static bool SkyStrikeCheck(ISkillContext sc)
         {
@@ -69,14 +77,15 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasAttack(3)]
         [HasBuff]
         [Labels(Impression.Aggressive, Strength.Strong)]
+        [IsAnalyzerAlias(nameof(StandardAnalyzers.DefaultAttack))]
         private static IDSLSourceFile SkyStrike(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
-                .WriteAttack(3 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _fire.Set(true))
+                .WriteLancerAttack(3, AttackType.Instance.Physical())
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern))
                     .WithInterupt();
-            return DSL.Create(sc.Self, Others(pen));
+            return DSL.CreateBy(pen);
         }
         private static bool DragonToothCheck(ISkillContext sc)
         {
@@ -86,14 +95,22 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasDefense]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
+        [IsAnalyzerAlias(nameof(StandardAnalyzers.DefaultAttack))]
         private static IDSLSourceFile DragonTooth(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
-                .WriteAttack(3 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _ice.Set(true))
-                .WriteDefense(3, new CommonReduction());
-            return DSL.Create(sc.Self, Others(pen));
+                .WriteLancerAttack(3, AttackType.Instance.Physical())
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern))
+                .WriteDefense(new() 
+                { 
+                    Name = nameof(DragonTooth),
+                    AnalyzerKey = nameof(StandardAnalyzers.DefaultReduction),
+                    Type = DefenseType.Instance.CommonReduction(),
+                    Power = 3,
+                    Clock = new()
+                });
+            return DSL.CreateBy(pen);
         }
         private static bool TyrantDestructionCheck(ISkillContext sc)
         {
@@ -102,13 +119,14 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasAttack(3)]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
+        [IsAnalyzerAlias(nameof(StandardAnalyzers.DefaultAttack))]
         private static IDSLSourceFile TyrantDestruction(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
-                .WriteAttack(3 + Fire(), AttackType.Instance.Physical(), APFactor: 2)
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _light.Set(true));
-            return DSL.Create(sc.Self, Others(pen));
+                .WriteLancerAttack(3, AttackType.Instance.Physical(), APFactor: 2)
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern));
+            return DSL.CreateBy(pen);
         }
         private static bool TripleStabCheck(ISkillContext sc)
         {
@@ -119,37 +137,41 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         [HasAttack(1)]
         [HasBuff]
         [Labels(Impression.Robust, Strength.Strong)]
+        [IsAnalyzerAlias(nameof(StandardAnalyzers.DefaultAttack))]
         private static IDSLSourceFile TripleStab(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
-                .WriteAttack(2 + Fire(), AttackType.Instance.Physical())
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true))
-                .WriteAttack(2, AttackType.Instance.Physical())
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true))
-                .WriteAttack(1, AttackType.Instance.Physical())
-                    .WithFree(AttackStage.Instance.OnHitArmorFirstTime(), (a, b, c) => _dark.Set(true));
-            return DSL.Create(sc.Self, Others(pen));
+                .WriteLancerAttack(2, AttackType.Instance.Physical())
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern))
+                .WriteLancerAttack(2, AttackType.Instance.Physical())
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern))
+                .WriteLancerAttack(1, AttackType.Instance.Physical())
+                    .WithCallback(AttackStage.Instance.OnHitArmorFirstTime(), nameof(GetPattern));
+            return DSL.CreateBy(pen);
         }
         private ClapStateVar<int> _chargeCount = new(0);
         private ClapStateVar<int> _chargeCost = new(4);
         private ClapStateVar<bool> _wasPassive = new(false);
         private static bool RisingDragonCheck(ISkillContext sc)
         {
-            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), _chargeCost.Value);
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), sc.Self.Focus.CountMark(nameof(Charge)) > 0 ? 0 : 4);
         }
         [HasAttack(10)]
         [Labels(Impression.Aggressive, Strength.Strong)]
         private static IDSLSourceFile RisingDragon(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .UseResource(_chargeCost.Value, ResourceType.Instance.Iron())
-                .WriteAttack(9 + _chargeCount.Value * 4 + Fire(), AttackType.Instance.Magical());
-            return DSL.Create(sc.Self, Others(pen));
+                .TakeMark(nameof(Charge), out var layerNum)
+                .UseResource(() => layerNum.Value > 0 ? 0 : 4, ResourceType.Instance.Iron())
+                .WriteLancerAttack(9, AttackType.Instance.Magical(), skillName: nameof(StandardAnalyzers.DefaultAttack))
+                    .WithModify(last => last.Power += 4 * layerNum.Value);
+            return DSL.CreateBy(pen);
         }
         private static bool ChargeCheck(ISkillContext sc)
         {
-            return _chargeCount.Value < 2 && sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), _chargeCost.Value);
+            var count = sc.Self.Focus.CountMark(nameof(Charge));
+            return count < 2 && sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), count > 0 ? 0 : 4);
         }
         /*
         蓄力是目前最复杂的技能，与它相关的有三个状态变量：
@@ -181,52 +203,58 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         如果没有使用蓄力，那么就回到了state1
 
         注意：前提条件是不考虑跨回合伤害技能。如果出现了战矛可用的这种技能，那么要将反击规则插入到攻击抵消之后，并且重新再做一遍抵消
-        
+        */
         [HasBuff]
         [Labels(Impression.Robust, Strength.Super)]
         private static IDSLSourceFile Charge(ISkillContext sc)
         {
-            int chargeCountThis = _chargeCount.Value + 1;
             Pen pen = sf => sf
-                .UseResource(_chargeCost.Value, ResourceType.Instance.Iron())
-                .WriteCompileTime(a => _chargeCount.Increment(), true)
-                .WriteCompileTime(a => _chargeCost.Set(0), true)
+                .CountMark(nameof(Charge), out var layerNum)
+                .UseResource(() => layerNum.Value > 0 ? 0 : 4, ResourceType.Instance.Iron())
+                .AddMark(nameof(Charge))
                 .RegistCallbackOnJudge(new()
                 {
-                    new ModifierCallback(AttackCanceling_Modifier_Before,
-                    JudgeStage.Instance.OnAttackCanceling(),
-                    ModifierOrder.Before,
-                    new()),
-                    new ModifierCallback((player, enemy) =>
+                    new ModifierCallback()
                     {
-                        if(_chargeCount.Value == chargeCountThis && !_wasPassive.Value)
-                        {
-                            _chargeCount.Reset();
-                            _chargeCost.Reset();
-                        }
-                        _wasPassive.Reset();
+                        AnalyzerKey = nameof(ChargeBeforeAttackCanceling),
+                        Stage = JudgeStage.Instance.OnAttackCanceling(),
+                        ModifierOrder = ModifierOrder.Before,
+                        Clock = new()
                     },
-                    JudgeStage.Instance.OnBegin(),
-                    ModifierOrder.Before,
-                    new(delayRounds: 1))
+                    new ModifierCallback()
+                    {
+                        AnalyzerKey = nameof(ChargeBeforeBegin),
+                        Stage = JudgeStage.Instance.OnBegin(),
+                        ModifierOrder = ModifierOrder.Before,
+                        Clock = new(delayRounds: 1)
+                    }
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
-        private static void AttackCanceling_Modifier_Before(Community player, Community enemy)
+        [IsAnalyzer(AnalyzerType.JudgeCallback)]
+        public static void ChargeBeforeAttackCanceling(Community player, Community enemy)
         {
             if (enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>().Find(a => a.Clock.IsRinging) == null)
             {
                 return;
             }
-            _wasPassive.Set(true);
+            player.Focus.AddMark(Keys.CounterAttack);
             Pen pen = sf => sf
-                .WriteAttack(10 + _chargeCount.Value * 4 + Fire(), AttackType.Instance.Magical())
-                .WriteCompileTime(a => _chargeCount.Reset(), true)
-                .WriteCompileTime(a => _chargeCost.Reset(), true);
-            DSL.Create(player, Others(pen)).Compile().Execute(player);
-
+                .TakeMark(nameof(Charge), out var layerNum)
+                .WriteLancerAttack(9, AttackType.Instance.Magical(), skillName: nameof(StandardAnalyzers.DefaultAttack))
+                    .WithModify(last => last.Power += 4 * layerNum.Value);
+            DSL.CreateBy(pen).Compile().Execute(player);
+        }
+        [IsAnalyzer(AnalyzerType.JudgeCallback)]
+        public static void ChargeBeforeBegin(Community player, Community enemy)
+        {
+            var passiveLayerNum = player.Focus.TakeMark(Keys.CounterAttack);
+            if (player.CurrentSkillName != nameof(Charge).ToLower() && passiveLayerNum <= 0)
+            {
+                player.Focus.TakeMark(nameof(Charge));
+            }
+            
         }
     }
 
 }
-*/

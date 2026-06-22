@@ -2,7 +2,7 @@ using BlacksmithCore.Infra.DSL;
 
 namespace BlacksmithCore.Infra.Profession
 {
-    using DSL = DSLforSkillLogic;
+    using DSL = BlacksmithDSL;
 
     public abstract class SkillPackageBase
     {
@@ -39,7 +39,7 @@ namespace BlacksmithCore.Infra.Profession
         }
         public virtual IDSLSourceFile PassiveSkillImpl(ISkillContext sc)
         {
-            return new DSL.SourceFile(sc.Self);
+            return new DSL.SourceFile();
         }
         public abstract SkillPackageBase Copy();
     }

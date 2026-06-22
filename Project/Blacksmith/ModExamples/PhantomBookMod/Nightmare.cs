@@ -7,8 +7,8 @@ using BlacksmithCore.Infra.Profession;
 
 namespace ModExamples.PhantomBookMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsExperimental]
     public partial class Nightmare : MainProfession
     {
@@ -26,7 +26,7 @@ namespace ModExamples.PhantomBookMod
                 .WriteRecovery(1)
                 .WriteResource(1f, ResourceType.Instance.Spirit())
                 .WriteDefense(0f, new MagicalImmunity());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool MaterializeCheck(ISkillContext sc)
         {
@@ -42,7 +42,7 @@ namespace ModExamples.PhantomBookMod
                 .WriteAttack(4f, AttackType.Instance.Physical())
                 .WriteAttack(4f, AttackType.Instance.Real())
                 .WriteDefense(4f, new CommonReduction());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ClingingHauntCheck(ISkillContext sc)
         {
@@ -56,7 +56,7 @@ namespace ModExamples.PhantomBookMod
                 .WriteAttack(2f, AttackType.Instance.Magical(), delayRounds: 0)
                 .WriteAttack(2f, AttackType.Instance.Magical(), delayRounds: 1)
                 .WriteAttack(1f, AttackType.Instance.Magical(), delayRounds: 2);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ChannelingCheck(ISkillContext sc)
         {
@@ -69,7 +69,7 @@ namespace ModExamples.PhantomBookMod
                 .WriteRecovery(3)
                 .WriteDefense(2f, new CommonReduction())
                 .WriteDefense(0f, new MagicalImmunity());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

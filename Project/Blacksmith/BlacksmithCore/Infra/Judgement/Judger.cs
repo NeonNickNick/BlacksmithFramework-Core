@@ -22,7 +22,7 @@ namespace BlacksmithCore.Infra.Judgement
             JudgeRuleManager.Copy(origin.JudgeRuleManager);
         }
 
-        protected virtual IEnumerable<Intent> Compile(IEnumerable<IDSLSourceFile> sourceFiles)
+        protected virtual IEnumerable<Intent> Compile(Community owner, IEnumerable<IDSLSourceFile> sourceFiles)
         {
             int? totalCount = (sourceFiles as ICollection<IDSLSourceFile>)?.Count;
             var passives = new List<IDSLSourceFile>(totalCount ?? 4);
@@ -65,11 +65,11 @@ namespace BlacksmithCore.Infra.Judgement
 
         public virtual void Judge(IEnumerable<IDSLSourceFile> playerSfs, IEnumerable<IDSLSourceFile> enemySfs)
         {
-            foreach (var temp in Compile(playerSfs))
+            foreach (var temp in Compile(Player, playerSfs))
             {
                 temp.Execute(Player);
             }
-            foreach (var temp in Compile(enemySfs))
+            foreach (var temp in Compile(Enemy, enemySfs))
             {
                 temp.Execute(Enemy);
             }

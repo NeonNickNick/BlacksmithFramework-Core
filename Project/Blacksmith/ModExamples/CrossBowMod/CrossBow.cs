@@ -11,8 +11,8 @@ using BlacksmithCore.Infra.Utils;
 
 namespace ModExamples.CrossBowMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class CrossBow : MainProfession
     {
         private ClapStateVar<bool> _aimed = new(false);
@@ -25,7 +25,7 @@ namespace ModExamples.CrossBowMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(3f, ResourceType.Instance.Bolt());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool BoltVolleyCheck(ISkillContext sc)
         {
@@ -37,14 +37,14 @@ namespace ModExamples.CrossBowMod
             Pen pen = sf => sf
                 .UseResource(sc.Param, ResourceType.Instance.Bolt())
                 .WriteAttack(sc.Param, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool AimCheck(ISkillContext sc) => true;
         private IDSLSourceFile Aim(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .WriteCompileTime(source => _aimed.Set(true), true);
-            return DSL.Create(sc.Self, pen);
+                .WriteFree(source => _aimed.Set(true), true);
+            return DSL.CreateBy(pen);
         }
         private bool CriticalHitCheck(ISkillContext sc)
         {
@@ -58,7 +58,7 @@ namespace ModExamples.CrossBowMod
                 .WriteAttack(_aimed.Value ? 0f : 1f, AttackType.Instance.Physical())
                 .WriteAttack(_aimed.Value ? 2f : 1f, AttackType.Instance.Real());
             _aimed.Reset();
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ParryCheck(ISkillContext sc)
         {
@@ -69,7 +69,7 @@ namespace ModExamples.CrossBowMod
             Pen pen = sf => sf
                 .UseResource(sc.Param * 0.5f, ResourceType.Instance.Bolt())
                 .WriteDefense(4.5f * sc.Param - 0.5f * sc.Param * sc.Param, new CommonReduction());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool MarkingBoltCheck(ISkillContext sc)
         {
@@ -103,7 +103,7 @@ namespace ModExamples.CrossBowMod
                         ModifierOrder.Before,
                         new(remainingRounds: 1, delayRounds: 1)),
                     });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

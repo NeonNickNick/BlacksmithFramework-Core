@@ -11,8 +11,8 @@ using ModExamples.CauldronMod.Defense;
 
 namespace ModExamples.CauldronMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Cauldron : MainProfession
     {
         private bool FireCheck(ISkillContext sc)
@@ -24,7 +24,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Fire());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool WaterCheck(ISkillContext sc)
         {
@@ -35,7 +35,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Water());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool WoodCheck(ISkillContext sc)
         {
@@ -46,7 +46,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Wood());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool EarthCheck(ISkillContext sc)
         {
@@ -57,7 +57,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Earth());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ExplosionCheck(ISkillContext sc)
         {
@@ -69,7 +69,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(sc.Param, ResourceType.Instance.Fire())
                 .WriteAttack(4f * sc.Param, AttackType.Instance.Magical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool IceBladeCheck(ISkillContext sc)
         {
@@ -81,7 +81,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(sc.Param, ResourceType.Instance.Water())
                 .WriteAttack(5f * sc.Param, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool RegenerationCheck(ISkillContext sc)
         {
@@ -102,7 +102,7 @@ namespace ModExamples.CauldronMod
                                 begin++;
                                 effectEntity.Power = begin;
                             });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool StoneShellCheck(ISkillContext sc)
         {
@@ -113,7 +113,7 @@ namespace ModExamples.CauldronMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Earth())
                 .WriteDefense(0f, new StoneShell());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool LifeBurnCheck(ISkillContext sc)
         {
@@ -167,7 +167,7 @@ namespace ModExamples.CauldronMod
                         ModifierOrder.Before,
                         new(remainingRounds: 1, delayRounds: 3)),
                     });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private bool FireRainCheck(ISkillContext sc)
@@ -184,7 +184,7 @@ namespace ModExamples.CauldronMod
                 .WriteAttack(8f, AttackType.Instance.Physical(), delayRounds: 0)
                 .WriteAttack(2f, AttackType.Instance.Real(), delayRounds: 0)
                 .WriteAttack(1f, AttackType.Instance.Real(), delayRounds: 0);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ElementalArmorCheck(ISkillContext sc)
         {
@@ -203,12 +203,12 @@ namespace ModExamples.CauldronMod
                     owner.Focus.Get<Skill>().RemovePackage(nameof(ElementalArmor));
                     owner.Focus.Get<Skill>().Enable(packageNames);
                 }))
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     packageNames = source.Focus.Get<Skill>().DisableAll();
                     source.Focus.Get<Skill>().AddPackage(new(new ElementalArmor()));
                 }, true);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

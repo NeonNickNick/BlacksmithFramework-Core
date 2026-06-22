@@ -10,6 +10,6 @@ namespace BlacksmithCore.Infra.Judgement.Core
     public interface ICallbackOnJudge : IAnalyzableData
     {
         public JudgeStage.CEValue Stage { get; init; }
-        public bool IsPlayer { get; init; }
+        public bool IsPlayer { get; set; }
     }
 }

@@ -10,8 +10,8 @@ using ModExamples.HolyBookMod;
 using ModExamples.HolyBookMod.Defense;
 namespace ModExamples
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsExperimental]
     public partial class HolyBook : MainProfession
     {
@@ -24,14 +24,14 @@ namespace ModExamples
             Pen pen = sf => sf
                 .UseResource(0.5f, ResourceType.Instance.Iron())
                 .WriteResource(1, ResourceType.Instance.Cross());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool PrayCheck(ISkillContext sc) => true;
         private IDSLSourceFile Pray(ISkillContext sc)
         {
             Pen pen = sf => sf
                 .WriteDefense(3, new CommonReduction());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ArkCheck(ISkillContext sc)
         {
@@ -44,7 +44,7 @@ namespace ModExamples
                 .UseResource(2, ResourceType.Instance.Cross())
                 .WriteAttack(8, AttackType.Instance.Physical())
                 .WriteDefense(1, new PercentageReduction(baseline: 2));
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private int _blasphemyCount = 0;
         private bool BlasphemyCheck(ISkillContext sc)
@@ -58,8 +58,8 @@ namespace ModExamples
                 .UseResource(1, ResourceType.Instance.Cross())
                 .WriteAttack(2, AttackType.Instance.Real())
                 .WriteDefense(2 + (int)MathF.Ceiling(_blasphemyCount / 3), new GreyHP())
-                .WriteCompileTime(a => _blasphemyCount++, true);
-            return DSL.Create(sc.Self, pen);
+                .WriteFree(a => _blasphemyCount++, true);
+            return DSL.CreateBy(pen);
         }
         private bool RebirthCheck(ISkillContext sc)
         {
@@ -80,7 +80,7 @@ namespace ModExamples
                 .WriteDefense(1, new PercentageReduction(baseline: 4), delayRounds: 0)
                 .WriteDefense(1, new PercentageReduction(baseline: 4), delayRounds: 1)
                 .WriteDefense(1, new PercentageReduction(baseline: 4), delayRounds: 2);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ExonerationCheck(ISkillContext sc)
         {
@@ -91,7 +91,7 @@ namespace ModExamples
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Cross())
                 .WriteDefense(1, new PermanentRealReduction());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
     }

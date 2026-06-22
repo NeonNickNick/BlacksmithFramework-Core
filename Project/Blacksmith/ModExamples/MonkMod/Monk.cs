@@ -11,8 +11,8 @@ using BlacksmithCore.Infra.Utils;
 
 namespace ModExamples.MonkMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Monk : MainProfession
     {
         private List<Body> _clones = new();
@@ -29,7 +29,7 @@ namespace ModExamples.MonkMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Jade());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool GhostStepCheck(ISkillContext sc)
         {
@@ -42,7 +42,7 @@ namespace ModExamples.MonkMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Jade())
                 .LoseHP(1)
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     _cloneNum.Increment();
                     clone = new Body(source, $"Clone{_cloneNum.Value}");
@@ -92,7 +92,7 @@ namespace ModExamples.MonkMod
                             return clone.Get<Health>().IsKilled;
                         })),
                     });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool GoldenBellCoverCheck(ISkillContext sc)
         {
@@ -102,9 +102,9 @@ namespace ModExamples.MonkMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Jade())
-                .WriteCompileTime(a => _gbcTimes.Increment(), true)
+                .WriteFree(a => _gbcTimes.Increment(), true)
                 .WriteDefense(100f - 60f * _gbcTimes.Value, new PercentageReduction(baseline: 100));
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool MazeFistCheck(ISkillContext sc)
         {
@@ -114,7 +114,7 @@ namespace ModExamples.MonkMod
         private IDSLSourceFile MazeFist(ISkillContext sc)
         {
             Pen pen = sf => sf
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     _clones.RemoveAll(c => c.Get<Health>().IsKilled);
                     var hpMax = _clones.MaxBy(c => c.Get<Health>().HP);
@@ -136,7 +136,7 @@ namespace ModExamples.MonkMod
                             };
                             source.Focus.Get<Effect>().Add(entity);
                         });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool MistCheck(ISkillContext sc)
         {
@@ -148,7 +148,7 @@ namespace ModExamples.MonkMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     _transmitPercent.Set(0.9f);
                     _mist.Set(false);
@@ -175,7 +175,7 @@ namespace ModExamples.MonkMod
                     ModifierOrder.Before,
                     new(delayRounds: 2, remainingRounds: 1))
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool DisillusionmentCheck(ISkillContext sc)
         {
@@ -188,7 +188,7 @@ namespace ModExamples.MonkMod
                 .UseResource(2f, ResourceType.Instance.Jade())
                 .WriteAttack(6f, AttackType.Instance.Physical())
                 .WriteAttack(4f, AttackType.Instance.Magical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

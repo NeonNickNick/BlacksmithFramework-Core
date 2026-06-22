@@ -2,39 +2,11 @@ using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
 using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
 using BlacksmithCore.Infra.Profession;
-using BlacksmithCore.Specific.BuiltInProfessions.BloodSigilDSLExtension;
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
-    namespace BloodSigilDSLExtension
-    {
-        public static class Extension
-        {
-            private const float MultiFactor = 1.5f;
-            private static int IncreaseAttack(int origin)
-            {
-                var res = (int)MathF.Ceiling(origin * MultiFactor);
-                return res;
-            }
-            public static DSL.AttackFile CompileTimeIncrease(this DSL.AttackFile af, Community self, string markName)
-            {
-                return af.WithComplieTime(last =>
-                {
-                    var marks = self.Focus.Get<Effect>().Effects;
-                    var index = marks.FindIndex(m => m.AnalyzerKey == markName);
-                    if (index == -1)
-                    {
-                        return;
-                    }
-                    last.Power = IncreaseAttack(last.Power);
-                    marks.RemoveAt(index);
-                });
-            }
-        }
-    }
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class BloodSigil : MainProfession
     {
         private static bool BloodBladeCheck(ISkillContext sc)
@@ -48,10 +20,11 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
             Pen pen = sf => sf
                 .LoseHP(4)
+                .TakeMark(nameof(BloodLust), out var layerNum)
                 .WriteAttack(6, AttackType.Instance.Physical())
-                    .CompileTimeIncrease(sc.Self, nameof(BloodLust))
+                    .WithModify(last => last.Power = (int)MathF.Ceiling(last.Power * MathF.Pow(1.5f, layerNum.Value)))
                     .WithBloodSuck(0.75f);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private static bool BloodLustCheck(ISkillContext sc)
         {
@@ -63,14 +36,8 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
             Pen pen = sf => sf
                 .LoseHP(2)
-                .AddMark(new()
-                {
-                    AnalyzerKey = nameof(BloodLust),
-                    IsMark = true,
-                    Type = EffectType.Instance.Default(),
-                    Clock = new(isInfinite: true)
-                });
-            return DSL.Create(sc.Self, pen);
+                .AddMark(nameof(BloodLust));
+            return DSL.CreateBy(pen);
         }
         private static bool BloodRecoveryCheck(ISkillContext sc) => true;
         [HasRecovery]
@@ -79,7 +46,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
             Pen pen = sf => sf
                 .WriteRecovery(1);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private static bool BloodShieldCheck(ISkillContext sc)
         {
@@ -100,7 +67,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     Power = power,
                     Clock = new()
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private static bool BloodRageCheck(ISkillContext sc)
         {
@@ -113,10 +80,11 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
             Pen pen = sf => sf
                 .LoseHP(1)
+                .TakeMark(nameof(BloodLust), out var layerNum)
                 .WriteAttack(5, AttackType.Instance.Physical())
-                    .CompileTimeIncrease(sc.Self, nameof(BloodLust))
+                    .WithModify(last => last.Power = (int)MathF.Ceiling(last.Power * MathF.Pow(1.5f, layerNum.Value)))
                     .WithBloodSuck(1.5f);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

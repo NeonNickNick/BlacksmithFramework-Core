@@ -12,8 +12,8 @@ using BlacksmithCore.Infra.Profession;
 
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Common : MainProfession
     {
         private static IReadOnlySet<string> ProfessionSkillNames => ProfessionRegistry.MainProfessionSkillNames;
@@ -25,7 +25,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
         {
 
             Pen pen = sf => sf.WriteResource(1, ResourceType.Instance.Iron());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool StickCheck(ISkillContext sc)
@@ -39,7 +39,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(0.5f, ResourceType.Instance.Iron())
                 .WriteAttack(1, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool DrillCheck(ISkillContext sc)
@@ -53,7 +53,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(1.5f, ResourceType.Instance.Iron())
                 .WriteAttack(3, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool SlashCheck(ISkillContext sc)
@@ -67,7 +67,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(2.5f, ResourceType.Instance.Iron())
                 .WriteAttack(5, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool ShieldCheck(ISkillContext sc)
@@ -88,7 +88,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     Power = 2 + sc.Param,
                     Clock = new()
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool ThornShieldCheck(ISkillContext sc)
@@ -109,7 +109,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     Power = 4 + sc.Param,
                     Clock = new()
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool RecoveryCheck(ISkillContext sc)
@@ -123,7 +123,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(1 + sc.Param, ResourceType.Instance.Iron())
                 .WriteRecovery(2 + 2 * sc.Param);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool SpaceCheck(ISkillContext sc)
@@ -137,7 +137,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(3, ResourceType.Instance.Iron())
                 .WriteResource(1, ResourceType.Instance.Space());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool TimeCheck(ISkillContext sc)
@@ -151,7 +151,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(3, ResourceType.Instance.Iron())
                 .WriteResource(1, ResourceType.Instance.Time());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool TearCheck(ISkillContext sc)
@@ -165,7 +165,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Space())
                 .WriteAttack(8, AttackType.Instance.Physical());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private static bool ReflectCheck(ISkillContext sc)
         {
@@ -186,7 +186,6 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                             AnalyzerKey = nameof(ReflectBeforeApplyingEffect),
                             Stage = JudgeStage.Instance.OnApplyingEffect(),
                             Clock = new(),
-                            IsPlayer = sc.Self.IsPlayer,
                             ModifierOrder = ModifierOrder.Before
                         },
                         new ModifierCallback()
@@ -194,11 +193,10 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                             AnalyzerKey = nameof(ReflectAfterAttackCanceling),
                             Stage = JudgeStage.Instance.OnAttackCanceling(),
                             Clock = new(),
-                            IsPlayer = sc.Self.IsPlayer,
                             ModifierOrder = ModifierOrder.After
                         }
                     });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         [IsAnalyzer(AnalyzerType.JudgeCallback)]
         public static void ReflectBeforeApplyingEffect(Community player, Community enemy)
@@ -248,11 +246,11 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Warlock()));
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     ExcludeAllProfessions(source);
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool CannonCheck(ISkillContext sc)
@@ -274,11 +272,11 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     Power = 3,
                     Clock = new()
                 })
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     ExcludeAllProfessions(source);
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool DriverCheck(ISkillContext sc)
@@ -292,11 +290,11 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Driver()));
             Pen pen = sf => sf
                 .UseResource(3, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     ExcludeAllProfessions(source);
                 });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private static bool BloodSigilCheck(ISkillContext sc)
@@ -310,7 +308,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             sc.Self.Focus.Get<Skill>().AddPackage(new(new BloodSigil()));
             Pen pen = sf => sf
                 .UseResource(7, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     ExcludeAllProfessions(source);
                     List<string> addition = new()
@@ -324,8 +322,8 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
                     source.Focus.Get<Health>().GainMHP(3);
                     source.Focus.Get<Health>().GainHP(3);
                 });
-            return DSL.Create(sc.Self, pen);
-        }/*
+            return DSL.CreateBy(pen);
+        }
         private static bool LancerCheck(ISkillContext sc)
         {
             return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
@@ -337,12 +335,12 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             sc.Self.Focus.Get<Skill>().AddPackage(new(new Lancer()));
             Pen pen = sf => sf
                 .UseResource(3, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     ExcludeAllProfessions(source);
                 });
-            return DSL.Create(sc.Self, pen);
-        }*/
+            return DSL.CreateBy(pen);
+        }
         public static void ExcludeAllProfessions(Community source)
         {
             foreach (var name in ProfessionSkillNames)

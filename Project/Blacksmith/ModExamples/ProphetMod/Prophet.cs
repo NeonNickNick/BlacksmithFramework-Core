@@ -9,8 +9,8 @@ using ModExamples.ProphetMod.Defense;
 
 namespace ModExamples.ProphetMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Prophet : MainProfession
     {
         private Action<Community, Body, EffectEntity> _afterDodge = (source, b, c) =>
@@ -54,7 +54,7 @@ namespace ModExamples.ProphetMod
             Pen pen = sf => sf
                 .UseResource(1.5f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Crystal());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool CrystalBallCheck(ISkillContext sc)
         {
@@ -66,7 +66,7 @@ namespace ModExamples.ProphetMod
             Pen pen = sf => sf
                 .UseResource(2f, ResourceType.Instance.Crystal())
                 .WriteResource(1f, ResourceType.Instance.CrystalBall());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ForetoldCheck(ISkillContext sc)
         {
@@ -77,7 +77,7 @@ namespace ModExamples.ProphetMod
             Pen pen = (sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron()))
                 + Dodge;
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool GreatestCautionCheck(ISkillContext sc)
         {
@@ -87,14 +87,14 @@ namespace ModExamples.ProphetMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Crystal())
-                .WriteCompileTime(a =>
+                .WriteFree(a =>
                 {
                     _afterDodge += (Community source, Body target, EffectEntity entity) =>
                     {
                         DSL.Create(source, sf => sf.WriteAttack(4f, AttackType.Instance.Real(), delayRounds: 1)).Compile().Execute(source);
                     };
                 }, true);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool RevelationCheck(ISkillContext sc)
         {
@@ -104,20 +104,20 @@ namespace ModExamples.ProphetMod
         {
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Iron())
-                .WriteCompileTime(a =>
+                .WriteFree(a =>
                 {
                     _afterDodge += (Community source, Body target, EffectEntity entity) =>
                     {
                         source.Focus.Get<Resource>().Gain(ResourceType.Instance.Crystal(), 1f);
                     };
                 }, true);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool AssertionCheck(ISkillContext sc) => true;
         private IDSLSourceFile Assertion(ISkillContext sc)
         {
             Pen pen = (sf => sf
-                .WriteCompileTime(a =>
+                .WriteFree(a =>
                 {
                     _dodgeFail += (Community source, Body target, EffectEntity entity) =>
                     {
@@ -125,7 +125,7 @@ namespace ModExamples.ProphetMod
                     };
                 }, true))
                 + Dodge;
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool CrystalWallCheck(ISkillContext sc)
         {
@@ -137,7 +137,7 @@ namespace ModExamples.ProphetMod
                 .UseResource(1f, ResourceType.Instance.CrystalBall())
                 .WriteDefense(7, new CrystalWall(), delayRounds: 0)
                 .WriteDefense(7, new CrystalWall(), delayRounds: 1);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool RefractionCheck(ISkillContext sc)
         {
@@ -147,7 +147,7 @@ namespace ModExamples.ProphetMod
         {
             Pen pen = sf => sf
                 .WriteDefense(1, new PercentageReduction(baseline: 2));
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool UltimatumCheck(ISkillContext sc)
         {
@@ -162,7 +162,7 @@ namespace ModExamples.ProphetMod
                 .UseResource(1f, ResourceType.Instance.CrystalBall())
                 .UseResource(2f, ResourceType.Instance.Crystal())
                 .WriteAttack(12f, AttackType.Instance.Real(), delayRounds: sc.Param);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

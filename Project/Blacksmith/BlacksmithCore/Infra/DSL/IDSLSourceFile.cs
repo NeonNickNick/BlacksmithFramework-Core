@@ -8,6 +8,5 @@ namespace BlacksmithCore.Infra.DSL
     {
         public bool IsPassive { get; set; }
         public Intent Compile(JudgeRuleManager? judgeRuleManager = null);
-        public void Move(Community newOwner, HashSet<DSLforSkillLogic.SentenceType> filter);
     }
 }

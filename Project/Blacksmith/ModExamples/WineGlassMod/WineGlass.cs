@@ -6,8 +6,8 @@ using BlacksmithCore.Infra.Profession;
 
 namespace ModExamples.WineGlassMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class WineGlass : MainProfession
     {
         private bool WineCheck(ISkillContext sc)
@@ -19,7 +19,7 @@ namespace ModExamples.WineGlassMod
             Pen pen = sf => sf
                 .UseResource(0.5f, ResourceType.Instance.Iron())
                 .WriteResource(1f, ResourceType.Instance.Wine());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool CarnivalCheck(ISkillContext sc)
         {
@@ -41,7 +41,7 @@ namespace ModExamples.WineGlassMod
                               .RemoveAll(a => a.Clock.IsRinging);
                     }
                 );
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool ForgetCheck(ISkillContext sc)
         {
@@ -64,7 +64,7 @@ namespace ModExamples.WineGlassMod
                     },
                     delayRounds: 1
                 );
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

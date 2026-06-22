@@ -11,8 +11,8 @@ using ModExamples.PhantomBookMod.Defense;
 
 namespace ModExamples.PhantomBookMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsExperimental]
     public partial class PhantomBook : MainProfession
     {
@@ -25,7 +25,7 @@ namespace ModExamples.PhantomBookMod
             Pen pen = sf => sf
                 .UseResource(0.5f, ResourceType.Instance.Iron())
                 .WriteResource(1, ResourceType.Instance.Dream());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
 
         private bool AssociationCheck(ISkillContext sc)
@@ -73,7 +73,7 @@ namespace ModExamples.PhantomBookMod
                    tc.Get<AttackAnalyzableData>().ForEach(a => a.Clock.DelayRounds++);
                    tc.AddPreprocess<AttackAnalyzableData>(a => a.Clock.DelayRounds++, isInfinite: true);
                });
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool AwakeningCheck(ISkillContext sc)
         {
@@ -103,7 +103,7 @@ namespace ModExamples.PhantomBookMod
             Pen pen = sf => sf
                 .UseResource(1f, ResourceType.Instance.Dream())
                 .WriteRecovery(5);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
         private bool NightmareCheck(ISkillContext sc)
         {
@@ -123,12 +123,12 @@ namespace ModExamples.PhantomBookMod
                     owner.Focus.Get<Skill>().AddSkill(nameof(PhantomBook), nameof(Nightmare));
                     owner.Focus.Get<Skill>().RemovePackage(nameof(Nightmare));
                 }))
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     source.Focus.Get<Skill>().RemoveSkill(nameof(PhantomBook), nameof(Nightmare));
                     source.Focus.Get<Skill>().AddPackage(new(new Nightmare()));
                 }, false);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

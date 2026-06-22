@@ -27,8 +27,32 @@ namespace ClapSourceGenerators.SkillRegistration
 
         private static readonly DiagnosticDescriptor DuplicateAnalyzerNameRule = new(
             id: "CLAP005",
-            title: "Duplicate analyzer name within same package kind",
-            messageFormat: "Analyzer method '{0}' in package kind '{1}' has the same name as '{2}' declared earlier. Analyzer names must be unique within the same package kind.",
+            title: "Duplicate analyzer or alias name within same package kind",
+            messageFormat: "'{0}' in package kind '{1}' conflicts with '{2}' declared earlier. Analyzer and alias names must be unique within the same package kind.",
+            category: "ClapAnalyzerRegistration",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        private static readonly DiagnosticDescriptor AliasTargetNotFoundRule = new(
+            id: "CLAP006",
+            title: "IsAnalyzerAlias target method not found",
+            messageFormat: "Alias method '{0}' targets '{1}', but no [IsAnalyzer] method named '{1}' exists in this class. The target must be a method with [IsAnalyzer] declared in the same partial class.",
+            category: "ClapAnalyzerRegistration",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        private static readonly DiagnosticDescriptor MustBeStaticRule = new(
+            id: "CLAP007",
+            title: "Analyzer method must be static",
+            messageFormat: "Method '{0}' is marked with '{1}' but is not static. Methods with [IsAnalyzer] or [IsAnalyzerAlias] must be static.",
+            category: "ClapAnalyzerRegistration",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        private static readonly DiagnosticDescriptor MustBePublicRule = new(
+            id: "CLAP008",
+            title: "Analyzer method must be public",
+            messageFormat: "Analyzer method '{0}' is not public. Methods with [IsAnalyzer] must be public.",
             category: "ClapAnalyzerRegistration",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -58,12 +82,15 @@ namespace ClapSourceGenerators.SkillRegistration
 
             var packageKind = DeterminePackageKind(symbol);
 
+            // Use MethodKind.Ordinary to include both static and non-static ordinary methods.
+            // Non-static methods with analyzer attributes must be detected and reported.
             var methods = symbol.GetMembers()
                 .OfType<IMethodSymbol>()
-                .Where(m => m.IsStatic)
+                .Where(m => m.MethodKind == MethodKind.Ordinary)
                 .ToList();
 
             var analyzerMethods = new List<AnalyzerMethodInfo>();
+            var aliasMethods = new List<AnalyzerAliasInfo>();
             var diagnostics = new List<AnalyzerDiagnosticInfo>();
 
             var currentFilePath = classDecl.SyntaxTree.FilePath;
@@ -81,22 +108,68 @@ namespace ClapSourceGenerators.SkillRegistration
                 var isAnalyzerAttr = method.GetAttributes().FirstOrDefault(a =>
                     a.AttributeClass?.ToDisplayString() == "BlacksmithCore.Infra.Attributes.Analyzer.IsAnalyzer");
 
-                if (isAnalyzerAttr == null)
+                var isAnalyzerAliasAttr = method.GetAttributes().FirstOrDefault(a =>
+                    a.AttributeClass?.ToDisplayString() == "BlacksmithCore.Infra.Attributes.Analyzer.IsAnalyzerAlias");
+
+                // Skip methods with neither attribute
+                if (isAnalyzerAttr == null && isAnalyzerAliasAttr == null)
                     continue;
 
-                var analyzerType = AnalyzerTypeKind.DSL; // default
-                if (isAnalyzerAttr.ConstructorArguments.Length > 0 &&
-                    isAnalyzerAttr.ConstructorArguments[0].Value is int typeValue)
+                // Check static requirement — both attributes require static methods
+                if (!method.IsStatic)
                 {
-                    analyzerType = (AnalyzerTypeKind)typeValue;
+                    var attrName = isAnalyzerAttr != null ? "IsAnalyzer" : "IsAnalyzerAlias";
+                    diagnostics.Add(new AnalyzerDiagnosticInfo(
+                        AnalyzerDiagnosticKind.MustBeStatic,
+                        method.Locations.FirstOrDefault(),
+                        method.Name,
+                        attrName));
+
+                    // For [IsAnalyzer] on non-static, also run existing signature validation
+                    // so the developer sees all issues in one compilation cycle.
+                    if (isAnalyzerAttr != null)
+                    {
+                        var nsAnalyzerType = ExtractAnalyzerType(isAnalyzerAttr);
+                        var nsValidationResult = ValidateAnalyzerMethod(method, nsAnalyzerType, ctx.SemanticModel.Compilation);
+                        if (nsValidationResult != null)
+                            diagnostics.Add(nsValidationResult);
+                    }
+                    continue;
                 }
 
-                // Build the expected signature for non-Universal types
+                // [IsAnalyzerAlias] on static method: collect without signature validation
+                if (isAnalyzerAliasAttr != null)
+                {
+                    var targetName = isAnalyzerAliasAttr.ConstructorArguments.Length > 0
+                        ? isAnalyzerAliasAttr.ConstructorArguments[0].Value as string ?? string.Empty
+                        : string.Empty;
+
+                    aliasMethods.Add(new AnalyzerAliasInfo(
+                        method.Name,
+                        targetName,
+                        method.Locations.FirstOrDefault()));
+                    continue;
+                }
+
+                // [IsAnalyzer] on static method: existing validation logic
+                // isAnalyzerAttr is guaranteed non-null here — we already skipped null+null and alias-only cases
+                var analyzerType = ExtractAnalyzerType(isAnalyzerAttr!);
+
                 var validationResult = ValidateAnalyzerMethod(method, analyzerType, ctx.SemanticModel.Compilation);
                 if (validationResult != null)
                 {
                     diagnostics.Add(validationResult);
                     continue; // Skip this method — don't register broken analyzers
+                }
+
+                // [IsAnalyzer] methods must be public
+                if (method.DeclaredAccessibility != Accessibility.Public)
+                {
+                    diagnostics.Add(new AnalyzerDiagnosticInfo(
+                        AnalyzerDiagnosticKind.MustBePublic,
+                        method.Locations.FirstOrDefault(),
+                        method.Name));
+                    continue; // Skip — don't register non-public analyzers
                 }
 
                 analyzerMethods.Add(new AnalyzerMethodInfo(
@@ -105,7 +178,7 @@ namespace ClapSourceGenerators.SkillRegistration
                     method.Locations.FirstOrDefault()));
             }
 
-            if (analyzerMethods.Count == 0 && diagnostics.Count == 0)
+            if (analyzerMethods.Count == 0 && aliasMethods.Count == 0 && diagnostics.Count == 0)
                 return null;
 
             var filePath = classDecl.SyntaxTree.FilePath;
@@ -116,7 +189,9 @@ namespace ClapSourceGenerators.SkillRegistration
                 filePath,
                 packageKind,
                 analyzerMethods,
-                diagnostics);
+                diagnostics,
+                aliasMethods,
+                new List<ResolvedAliasInfo>());
         }
 
         private static INamedTypeSymbol? FindSkillPackageBase(INamedTypeSymbol type)
@@ -146,6 +221,18 @@ namespace ClapSourceGenerators.SkillRegistration
                 current = current.BaseType;
             }
             return PackageKind.Other;
+        }
+
+        /// <summary>
+        /// Extracts the AnalyzerTypeKind from an [IsAnalyzer] attribute's constructor argument.
+        /// Defaults to DSL if no argument is provided.
+        /// </summary>
+        private static AnalyzerTypeKind ExtractAnalyzerType(AttributeData attr)
+        {
+            if (attr.ConstructorArguments.Length > 0 &&
+                attr.ConstructorArguments[0].Value is int typeValue)
+                return (AnalyzerTypeKind)typeValue;
+            return AnalyzerTypeKind.DSL;
         }
 
         /// <summary>
@@ -248,14 +335,57 @@ namespace ClapSourceGenerators.SkillRegistration
                 var classKey = $"{info.Namespace}.{info.ClassName}";
                 if (mergedByClass.TryGetValue(classKey, out var existing))
                 {
-                    // Merge: combine analyzer methods and diagnostics
+                    // Merge: combine analyzer methods, aliases, and diagnostics
                     existing.AnalyzerMethods.AddRange(info.AnalyzerMethods);
+                    existing.AliasMethods.AddRange(info.AliasMethods);
                     existing.Diagnostics.AddRange(info.Diagnostics);
                     // Keep the first FilePath as primary
                 }
                 else
                 {
                     mergedByClass[classKey] = info;
+                }
+            }
+
+            // --- Step 1.5: Resolve alias targets across the entire PackageKind ---
+            // Build a global map: (PackageKind, methodName) -> (AnalyzerType, QualifiedClassName)
+            // from ALL [IsAnalyzer] methods across ALL classes. This allows an alias in one
+            // class to target an [IsAnalyzer] method in another class of the same PackageKind.
+            var globalAnalyzerMap = new Dictionary<(PackageKind, string), (AnalyzerTypeKind Type, string QualifiedClass)>();
+            foreach (var info in mergedByClass.Values)
+            {
+                var qualifiedClass = $"{info.Namespace}.{info.ClassName}";
+                foreach (var am in info.AnalyzerMethods)
+                {
+                    var key = (info.PackageKind, am.MethodName);
+                    if (!globalAnalyzerMap.ContainsKey(key))
+                        globalAnalyzerMap[key] = (am.AnalyzerType, qualifiedClass);
+                }
+            }
+
+            // Resolve each alias against the global map using the alias's own PackageKind
+            foreach (var info in mergedByClass.Values)
+            {
+                foreach (var alias in info.AliasMethods)
+                {
+                    var lookupKey = (info.PackageKind, alias.TargetName);
+                    if (globalAnalyzerMap.TryGetValue(lookupKey, out var targetInfo))
+                    {
+                        info.ResolvedAliases.Add(new ResolvedAliasInfo(
+                            alias.AliasName,
+                            alias.TargetName,
+                            targetInfo.QualifiedClass,
+                            targetInfo.Type,
+                            alias.Location));
+                    }
+                    else
+                    {
+                        info.Diagnostics.Add(new AnalyzerDiagnosticInfo(
+                            AnalyzerDiagnosticKind.AliasTargetNotFound,
+                            alias.Location,
+                            alias.AliasName,
+                            alias.TargetName));
+                    }
                 }
             }
 
@@ -280,6 +410,34 @@ namespace ClapSourceGenerators.SkillRegistration
                 }
             }
 
+            // Alias name dedup within PackageKind — aliases must not conflict with
+            // analyzer names or other alias names in the same package kind.
+            var firstAliasByKind = new Dictionary<(PackageKind, string), AnalyzerPackageInfo>();
+            var duplicateAliases = new HashSet<(PackageKind Kind, string AliasName, AnalyzerPackageInfo Package)>();
+            var aliasConflictsWithAnalyzer = new HashSet<(PackageKind Kind, string AliasName, AnalyzerPackageInfo Package)>();
+
+            foreach (var info in mergedByClass.Values)
+            {
+                foreach (var alias in info.ResolvedAliases)
+                {
+                    var key = (info.PackageKind, alias.AliasName);
+
+                    // Conflict: alias name matches an [IsAnalyzer] name in the same PackageKind
+                    if (globalAnalyzerMap.ContainsKey(key))
+                        aliasConflictsWithAnalyzer.Add((info.PackageKind, alias.AliasName, info));
+
+                    // Conflict: alias name duplicates another alias in the same PackageKind
+                    if (firstAliasByKind.TryGetValue(key, out var firstAliasPackage))
+                    {
+                        duplicateAliases.Add((info.PackageKind, alias.AliasName, info));
+                    }
+                    else
+                    {
+                        firstAliasByKind[key] = info;
+                    }
+                }
+            }
+
             // --- Step 3: Emit per-class sources and diagnostics ---
             foreach (var info in mergedByClass.Values)
             {
@@ -290,6 +448,9 @@ namespace ClapSourceGenerators.SkillRegistration
                     {
                         AnalyzerDiagnosticKind.WrongReturnType => WrongReturnTypeRule,
                         AnalyzerDiagnosticKind.WrongParameterSignature => WrongParameterSignatureRule,
+                        AnalyzerDiagnosticKind.AliasTargetNotFound => AliasTargetNotFoundRule,
+                        AnalyzerDiagnosticKind.MustBeStatic => MustBeStaticRule,
+                        AnalyzerDiagnosticKind.MustBePublic => MustBePublicRule,
                         _ => WrongReturnTypeRule // fallback
                     };
 
@@ -302,7 +463,7 @@ namespace ClapSourceGenerators.SkillRegistration
                     ctx.ReportDiagnostic(Diagnostic.Create(descriptor, location, diag.Args));
                 }
 
-                // Report cross-class dedup diagnostics for this package's duplicate methods
+                // Report cross-class dedup diagnostics for this package's duplicate analyzer methods
                 foreach (var method in info.AnalyzerMethods)
                 {
                     if (duplicateMethods.Contains((info.PackageKind, method.MethodName, info)))
@@ -320,7 +481,35 @@ namespace ClapSourceGenerators.SkillRegistration
                     }
                 }
 
-                if (info.AnalyzerMethods.Count > 0)
+                // Report alias dedup diagnostics
+                foreach (var alias in info.ResolvedAliases)
+                {
+                    var aliasLoc = alias.Location
+                        ?? Location.Create(info.FilePath, new Microsoft.CodeAnalysis.Text.TextSpan(0, 0),
+                            new Microsoft.CodeAnalysis.Text.LinePositionSpan(
+                                new Microsoft.CodeAnalysis.Text.LinePosition(0, 0),
+                                new Microsoft.CodeAnalysis.Text.LinePosition(0, 0)));
+
+                    // Alias name conflicts with an [IsAnalyzer] name in the same PackageKind
+                    if (aliasConflictsWithAnalyzer.Contains((info.PackageKind, alias.AliasName, info)))
+                    {
+                        ctx.ReportDiagnostic(Diagnostic.Create(
+                            DuplicateAnalyzerNameRule, aliasLoc,
+                            alias.AliasName, info.PackageKind.ToString(), alias.AliasName));
+                    }
+
+                    // Alias name conflicts with another alias in the same PackageKind
+                    if (duplicateAliases.Contains((info.PackageKind, alias.AliasName, info)))
+                    {
+                        var firstPackage = firstAliasByKind[(info.PackageKind, alias.AliasName)];
+                        ctx.ReportDiagnostic(Diagnostic.Create(
+                            DuplicateAnalyzerNameRule, aliasLoc,
+                            alias.AliasName, info.PackageKind.ToString(),
+                            $"{firstPackage.ClassName}.{alias.AliasName}"));
+                    }
+                }
+
+                if (info.AnalyzerMethods.Count > 0 || info.ResolvedAliases.Count > 0)
                 {
                     ctx.AddSource(
                         $"{info.Namespace}.{info.ClassName}.AnalyzersRegistration.g.cs",
@@ -358,6 +547,11 @@ namespace ClapSourceGenerators.SkillRegistration
                 var memberName = GetRegistryMemberName(method.AnalyzerType);
                 sb.AppendLine($"        global::BlacksmithCore.Infra.DSL.AnalyzerRegistry.{memberName}.Regist(\"{method.MethodName}\", {method.MethodName});");
             }
+            foreach (var alias in info.ResolvedAliases)
+            {
+                var memberName = GetRegistryMemberName(alias.AnalyzerType);
+                sb.AppendLine($"        global::BlacksmithCore.Infra.DSL.AnalyzerRegistry.{memberName}.Regist(\"{alias.AliasName}\", {alias.TargetQualifiedReference}.{alias.TargetMethodName});");
+            }
             sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
@@ -380,7 +574,10 @@ namespace ClapSourceGenerators.SkillRegistration
         internal enum AnalyzerDiagnosticKind
         {
             WrongReturnType,
-            WrongParameterSignature
+            WrongParameterSignature,
+            AliasTargetNotFound,
+            MustBeStatic,
+            MustBePublic
         }
 
         internal sealed class AnalyzerDiagnosticInfo
@@ -411,6 +608,38 @@ namespace ClapSourceGenerators.SkillRegistration
             }
         }
 
+        internal sealed class AnalyzerAliasInfo
+        {
+            public string AliasName { get; }
+            public string TargetName { get; }
+            public Location? Location { get; }
+
+            public AnalyzerAliasInfo(string aliasName, string targetName, Location? location)
+            {
+                AliasName = aliasName;
+                TargetName = targetName;
+                Location = location;
+            }
+        }
+
+        internal sealed class ResolvedAliasInfo
+        {
+            public string AliasName { get; }
+            public string TargetMethodName { get; }
+            public string TargetQualifiedReference { get; }
+            public AnalyzerTypeKind AnalyzerType { get; }
+            public Location? Location { get; }
+
+            public ResolvedAliasInfo(string aliasName, string targetMethodName, string targetQualifiedReference, AnalyzerTypeKind analyzerType, Location? location)
+            {
+                AliasName = aliasName;
+                TargetMethodName = targetMethodName;
+                TargetQualifiedReference = targetQualifiedReference;
+                AnalyzerType = analyzerType;
+                Location = location;
+            }
+        }
+
         internal sealed class AnalyzerPackageInfo
         {
             public string ClassName { get; }
@@ -419,6 +648,8 @@ namespace ClapSourceGenerators.SkillRegistration
             public PackageKind PackageKind { get; }
             public List<AnalyzerMethodInfo> AnalyzerMethods { get; }
             public List<AnalyzerDiagnosticInfo> Diagnostics { get; }
+            public List<AnalyzerAliasInfo> AliasMethods { get; }
+            public List<ResolvedAliasInfo> ResolvedAliases { get; }
 
             public AnalyzerPackageInfo(
                 string className,
@@ -426,7 +657,9 @@ namespace ClapSourceGenerators.SkillRegistration
                 string filePath,
                 PackageKind packageKind,
                 List<AnalyzerMethodInfo> analyzerMethods,
-                List<AnalyzerDiagnosticInfo> diagnostics)
+                List<AnalyzerDiagnosticInfo> diagnostics,
+                List<AnalyzerAliasInfo> aliasMethods,
+                List<ResolvedAliasInfo> resolvedAliases)
             {
                 ClassName = className;
                 Namespace = @namespace;
@@ -434,6 +667,8 @@ namespace ClapSourceGenerators.SkillRegistration
                 PackageKind = packageKind;
                 AnalyzerMethods = analyzerMethods;
                 Diagnostics = diagnostics;
+                AliasMethods = aliasMethods;
+                ResolvedAliases = resolvedAliases;
             }
         }
     }

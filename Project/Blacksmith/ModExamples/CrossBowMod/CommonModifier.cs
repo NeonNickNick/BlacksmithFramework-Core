@@ -8,8 +8,8 @@ using BlacksmithCore.Specific.BuiltInProfessions;
 
 namespace ModExamples.CrossBowMod
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsProfessionModifier(nameof(Common))]
     public partial class CommonModifier : ProfessionModifier
     {
@@ -23,11 +23,11 @@ namespace ModExamples.CrossBowMod
             sc.Self.Focus.Get<Skill>().AddPackage(new(new CrossBow()));
             Pen pen = sf => sf
                 .UseResource(2f, ResourceType.Instance.Iron())
-                .WriteCompileTime(source =>
+                .WriteFree(source =>
                 {
                     Common.ExcludeAllProfessions(source);
                 }, false);
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }

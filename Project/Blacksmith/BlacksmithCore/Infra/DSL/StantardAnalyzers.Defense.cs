@@ -7,7 +7,7 @@ using BlacksmithCore.Infra.Profession;
 
 namespace BlacksmithCore.Infra.DSL
 {
-    using DSL = DSLforSkillLogic;
+    using DSL = BlacksmithDSL;
     public partial class StandardAnalyzers : MainProfession
     {
         [IsAnalyzer(AnalyzerType.Universal)]
@@ -36,7 +36,7 @@ namespace BlacksmithCore.Infra.DSL
             var damage = Math.Min(attackData.Power, defense.Power);
             attackData.Power -= damage;
             attackData.TotalDamage += damage;
-            DSL.Create(player, sf => sf.WriteAttack((int)MathF.Ceiling(damage / 2f), AttackType.Instance.Magical(), delayRounds: 1)).Compile().Execute(player);
+            DSL.CreateBy(sf => sf.WriteAttack((int)MathF.Ceiling(damage / 2f), AttackType.Instance.Magical(), delayRounds: 1)).Compile().Execute(player);
         }
         [IsAnalyzer(AnalyzerType.Defense)]
         public static void MagicalImmunity(Community player, Community enemy, DefenseEntity defense, AttackAnalyzableData attackData)

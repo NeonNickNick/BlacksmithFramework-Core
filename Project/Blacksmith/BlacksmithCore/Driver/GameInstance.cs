@@ -142,6 +142,8 @@ namespace BlacksmithCore.Driver
         public void Declare(string skillName, int param, string esn, int ep, string stringParam = "", string esp = "")
         {
             Metadata.UpdateCurrentSkill(skillName, esn);
+            Player.CurrentSkillName = skillName;
+            Enemy.CurrentSkillName = esn;
             var playerContext = new DefaultSkillContext(this, skillName, Player, param, stringParam);
             var enemyContext = new DefaultSkillContext(this, esn, Enemy, ep, esp);
 

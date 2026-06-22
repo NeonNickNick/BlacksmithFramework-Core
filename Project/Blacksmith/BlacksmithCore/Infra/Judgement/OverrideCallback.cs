@@ -8,6 +8,6 @@ namespace BlacksmithCore.Infra.Judgement
         public required string AnalyzerKey { get; init; }
         public required ClapRoundClock Clock { get; init; }
         public required JudgeStage.CEValue Stage { get; init; }
-        public required bool IsPlayer { get; init; }
+        public required bool IsPlayer { get; set; }
     }
 }

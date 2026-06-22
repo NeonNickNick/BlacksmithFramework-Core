@@ -1,3 +1,4 @@
+using BlacksmithCore.Infra.Attributes.Analyzer;
 using BlacksmithCore.Infra.Attributes.SkillMetadata;
 using BlacksmithCore.Infra.DSL;
 using BlacksmithCore.Infra.Models.Components;
@@ -6,8 +7,8 @@ using BlacksmithCore.Infra.Profession;
 
 namespace BlacksmithCore.Specific.BuiltInProfessions
 {
-    using DSL = DSLforSkillLogic;
-    using Pen = Func<DSLforSkillLogic.SourceFile, DSLforSkillLogic.SourceFile>;
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     public partial class Alchemy : MainProfession
     {
         private static bool MidasTouchCheck(ISkillContext sc)
@@ -21,7 +22,7 @@ namespace BlacksmithCore.Specific.BuiltInProfessions
             Pen pen = sf => sf
                 .UseResource(1, ResourceType.Instance.Iron(), true)
                 .WriteResource(5, ResourceType.Instance.Gold_Iron());
-            return DSL.Create(sc.Self, pen);
+            return DSL.CreateBy(pen);
         }
     }
 }
