@@ -81,6 +81,7 @@ namespace BlacksmithServer.Web.Realtime
             var shouldResolve = false;
             var message = string.Empty;
             Dictionary<string, BattleSnapshot>? snapshots = null;
+            var errorForSubmitterOnly = false;
 
             await _gate.WaitAsync();
             try
@@ -99,11 +100,13 @@ namespace BlacksmithServer.Web.Realtime
                 {
                     snapshots = BuildSnapshotsNoLock();
                     message = "You already locked in a skill for this round.";
+                    errorForSubmitterOnly = true;
                 }
                 else if (skillData == null)
                 {
                     snapshots = BuildSnapshotsNoLock();
                     message = $"Invalid skill format: '{skillInput}'.";
+                    errorForSubmitterOnly = true;
                 }
                 else
                 {
@@ -121,6 +124,7 @@ namespace BlacksmithServer.Web.Realtime
                         Console.WriteLine($"[GameRoom] {username}: validation failed. Available resources: [{resSummary}]");
                         snapshots = BuildSnapshotsNoLock();
                         message = $"Skill '{skillInput}' {validation}.";
+                        errorForSubmitterOnly = true;
                     }
                     else
                     {
@@ -152,7 +156,18 @@ namespace BlacksmithServer.Web.Realtime
 
             if (snapshots != null)
             {
-                await PushSnapshotsAsync(snapshots, message);
+                if (errorForSubmitterOnly)
+                {
+                    var opponentName = participant == RoomParticipant.PlayerOne
+                        ? PlayerTwoUsername
+                        : PlayerOneUsername;
+                    await _persistAndSendAsync(username, snapshots[username], message);
+                    await _persistAndSendAsync(opponentName, snapshots[opponentName], null);
+                }
+                else
+                {
+                    await PushSnapshotsAsync(snapshots, message);
+                }
             }
         }
 
