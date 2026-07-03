@@ -1,6 +1,6 @@
 using BlacksmithCore.AI;
 using BlacksmithCore.Driver;
-using BlacksmithCore.Infra.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Components;
 
 namespace AIPVPPlatform
 {

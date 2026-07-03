@@ -1,17 +1,16 @@
-using BlacksmithCore.Infra.Attributes.Profession;
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Profession;
-using BlacksmithCore.Specific.BuiltInProfessions;
+using BlacksmithCore.BuiltInProfessions;
+using BlacksmithCore.Infrastructure.Attributes.Profession;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 
 namespace ModExamples.MonkMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
-    [IsProfessionModifier(nameof(Common))]
-    public partial class CommonModifier : ProfessionModifier
+    [IsSkillPackageModifier(nameof(Common))]
+    public partial class CommonModifier : SkillPackageModifier
     {
         private bool MonkCheck(ISkillCheckContext sc)
         {

@@ -1,11 +1,9 @@
-using BlacksmithCore.Infra.Attributes.SkillMarkOnly;
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Attributes.SkillMarkOnly;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 using ModExamples.HolyBookMod;
 using ModExamples.HolyBookMod.Defense;
 namespace ModExamples
@@ -13,7 +11,7 @@ namespace ModExamples
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsExperimental]
-    public partial class HolyBook : MainProfession
+    public partial class HolyBook : SkillPackageDefinition
     {
         private bool CrossCheck(ISkillCheckContext sc)
         {

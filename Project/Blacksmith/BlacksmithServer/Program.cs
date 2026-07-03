@@ -1,11 +1,9 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using BlacksmithCore.Infra.Utils;
 using BlacksmithServer.Web;
 using BlacksmithServer.Web.Auth;
 using BlacksmithServer.Web.Realtime;
-using Microsoft.AspNetCore.StaticFiles;
 namespace BlacksmithServer
 {
     public static class Server

@@ -5,7 +5,7 @@ namespace BlacksmithCore.Driver
     {
         public GameInstance StartBackend()
         {
-            GameInstance instance = new();
+            GameInstance instance = new(ifRecordInstanceHistory: true);
             return instance;
         }
     }

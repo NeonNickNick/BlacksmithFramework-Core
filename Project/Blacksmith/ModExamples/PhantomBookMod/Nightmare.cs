@@ -1,16 +1,15 @@
-using BlacksmithCore.Infra.Attributes.SkillMarkOnly;
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Attributes.SkillMarkOnly;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 
 namespace ModExamples.PhantomBookMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
     [IsExperimental]
-    public partial class Nightmare : MainProfession
+    public partial class Nightmare : SkillPackageDefinition
     {
         private bool DreamDiveCheck(ISkillCheckContext sc)
         {

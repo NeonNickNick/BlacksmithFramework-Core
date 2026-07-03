@@ -1,19 +1,16 @@
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Judgement;
-using BlacksmithCore.Infra.Judgement.Core;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
-using BlacksmithCore.Infra.Utils;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Judgement;
+using BlacksmithCore.Infrastructure.Judgement.Core;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 
 namespace ModExamples.MonkMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
-    public partial class Monk : MainProfession
+    public partial class Monk : SkillPackageDefinition
     {
         private List<Body> _clones = new();
         private ClapStateVar<int> _cloneNum = new(0);

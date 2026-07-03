@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using BlacksmithCore.Infra.Judgement;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Judgement;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Player;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithCore.Driver
 {
@@ -85,17 +85,15 @@ namespace BlacksmithCore.Driver
         public Judger Judger { get; private set; }
         public GameHistory History { get; private set; }
         public GameMetadata Metadata { get; private set; }
-        public GameInstance()
+        private bool _ifRecordInstanceHistory = false;
+        public GameInstance(bool ifRecordInstanceHistory = false)
         {
             Player = new(true);
             Enemy = new(false);
             Judger = new(Player, Enemy);
             History = new();
             Metadata = new();
-        }
-        public bool IsPlayer(Community community)
-        {
-            return community == Player;
+            _ifRecordInstanceHistory = ifRecordInstanceHistory;
         }
         public GameInstance DeepCopy()
         {
@@ -104,7 +102,15 @@ namespace BlacksmithCore.Driver
 
             return res;
         }
-
+        public GameInstance DeepCopy(int roundCount)
+        {
+            if (!_ifRecordInstanceHistory || roundCount < 0)
+            {
+                throw new InvalidDataException();
+            }
+            int n = History.InstanceHistory.Count;
+            return History.InstanceHistory[n - roundCount].DeepCopy();
+        }
         /// <summary>
         /// 将此实例归还到对象池。归还后不应再使用此实例。
         /// </summary>
@@ -121,7 +127,7 @@ namespace BlacksmithCore.Driver
                 SudoOperations = this,
                 SkillDeclareData = skillDeclareData
             };
-            return Player.Focus.Get<Skill>().TryDeclare(skillDeclareData.SkillName, context);
+            return Player.Focus.Get<Skill>().TryDeclare(context);
         }
         public SkillDeclareResult ETryDeclare(SkillDeclareData skillDeclareData)
         {
@@ -131,7 +137,7 @@ namespace BlacksmithCore.Driver
                 SudoOperations = this,
                 SkillDeclareData = skillDeclareData
             };
-            return Enemy.Focus.Get<Skill>().TryDeclare(skillDeclareData.SkillName, context);
+            return Enemy.Focus.Get<Skill>().TryDeclare(context);
         }
 
         public void Declare(SkillDeclareData playerSkill, SkillDeclareData enemySkill)
@@ -154,22 +160,28 @@ namespace BlacksmithCore.Driver
 
             var ps = Player.Focus.Get<Skill>();
             var psfs = ps.GetPassiveSkill(playerContext);
+            /*
             foreach (var s in Player.SummonList)
             {
                 psfs.AddRange(s.Get<Skill>().GetPassiveSkill(playerContext));
-            }
+            }*/
             psfs.Add(ps.Declare(playerSkill.SkillName, playerContext));
 
             var es = Enemy.Focus.Get<Skill>();
             var esfs = es.GetPassiveSkill(enemyContext);
+            /*
             foreach (var s in Enemy.SummonList)
             {
                 esfs.AddRange(s.Get<Skill>().GetPassiveSkill(playerContext));
-            }
+            }*/
             esfs.Add(es.Declare(enemySkill.SkillName, enemyContext));
 
             Judger.Judge(psfs, esfs);
             History.SkillHistory.Add((playerSkill, enemySkill));
+            if (_ifRecordInstanceHistory)
+            {
+                History.InstanceHistory.Add(DeepCopy());
+            }
         }
     }
 }

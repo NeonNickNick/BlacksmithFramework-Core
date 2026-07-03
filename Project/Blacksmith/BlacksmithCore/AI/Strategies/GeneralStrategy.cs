@@ -1,10 +1,9 @@
 using System.Text.Json.Serialization;
 using BlacksmithCore.Driver;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
-
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Player;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithCore.AI.Strategies
 {

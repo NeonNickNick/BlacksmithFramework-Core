@@ -1,17 +1,15 @@
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 using ModExamples.ProphetMod.Defense;
 
 namespace ModExamples.ProphetMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
-    public partial class Prophet : MainProfession
+    public partial class Prophet : SkillPackageDefinition
     {
         private Action<Community, Body, EffectEntity> _afterDodge = (source, b, c) =>
         {

@@ -1,6 +1,6 @@
-using BlacksmithCore.Infra.Attributes.SkillMetadata;
-using BlacksmithCore.Infra.Attributes.SkillMetadata.Core;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata.Core;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithCore.Driver
 {
@@ -28,8 +28,6 @@ namespace BlacksmithCore.Driver
             CurrentEnemySkillMetadata = new(enemySkill, SkillMetadataDict[enemySkill]);
         }
 
-        public IReadOnlySet<string> MainProfessionSkillNames
-            => ProfessionRegistry.MainProfessionSkillNames;
 
         private HashSet<string> _equipmentSkillNames = null!;
         private readonly object _equipmentSkillNamesLock = new();

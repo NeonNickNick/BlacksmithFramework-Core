@@ -1,7 +1,5 @@
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
 
 namespace ModExamples.ProphetMod.Defense
 {

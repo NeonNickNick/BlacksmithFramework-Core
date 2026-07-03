@@ -1,7 +1,7 @@
 using BlacksmithCore.Driver;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Player;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithServer.Web.Realtime
 {
@@ -11,7 +11,7 @@ namespace BlacksmithServer.Web.Realtime
         private const int TimeoutLossThreshold = 3;
 
         private readonly SemaphoreSlim _gate = new(1, 1);
-        private readonly GameInstance _game = new();
+        private readonly GameInstance _game = new(ifRecordInstanceHistory: true);
         private readonly List<TurnLog> _turns = new();
         private readonly Func<string, BattleSnapshot, string?, Task> _persistAndSendAsync;
         private readonly Func<GameRoom, Task> _onCompletedAsync;

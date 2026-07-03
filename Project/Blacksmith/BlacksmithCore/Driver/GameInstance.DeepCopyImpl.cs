@@ -1,4 +1,4 @@
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithCore.Driver
 {

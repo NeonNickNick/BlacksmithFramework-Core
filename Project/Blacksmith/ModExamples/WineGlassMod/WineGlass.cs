@@ -1,14 +1,13 @@
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Components.AnalyzableDatas;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 
 namespace ModExamples.WineGlassMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
-    public partial class WineGlass : MainProfession
+    public partial class WineGlass : SkillPackageDefinition
     {
         private bool WineCheck(ISkillCheckContext sc)
         {

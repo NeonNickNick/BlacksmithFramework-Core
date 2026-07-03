@@ -1,12 +1,11 @@
-using BlacksmithCore.Infra.DSL;
-using BlacksmithCore.Infra.Profession;
-using BlacksmithCore.Infra.Utils;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
 
 namespace ModExamples.MonkMod
 {
     using DSL = BlacksmithDSL;
     using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
-    public partial class Clone : MainProfession
+    public partial class Clone : SkillPackageDefinition
     {
         private ClapStateVar<int> _gbcTimes = new(0);
         public override IDSLSourceFile PassiveSkillImpl(ISkillExecuteContext sc)

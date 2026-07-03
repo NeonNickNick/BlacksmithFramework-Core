@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using BlacksmithCore.AI;
 using BlacksmithCore.Driver;
-using BlacksmithCore.Infra.Models.Components;
-using BlacksmithCore.Infra.Models.Entites;
-using BlacksmithCore.Infra.Profession;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Player;
+using BlacksmithCore.Infrastructure.Models.Profession;
 
 namespace BlacksmithClient.Frontend
 {

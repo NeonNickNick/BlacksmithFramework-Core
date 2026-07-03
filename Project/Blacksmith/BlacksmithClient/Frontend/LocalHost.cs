@@ -1,5 +1,4 @@
 using BlacksmithCore.AI;
-using Microsoft.AspNetCore.StaticFiles;
 
 namespace BlacksmithClient.Frontend
 {

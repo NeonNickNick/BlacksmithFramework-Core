@@ -1,0 +1,336 @@
+using System.Data;
+using BlacksmithCore.Infrastructure.Attributes.Analyzer;
+using BlacksmithCore.Infrastructure.Attributes.SkillMetadata;
+using BlacksmithCore.Infrastructure.Judgement;
+using BlacksmithCore.Infrastructure.Judgement.Core;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
+using BlacksmithCore.Infrastructure.Models.Components;
+using BlacksmithCore.Infrastructure.Models.Player;
+using BlacksmithCore.Infrastructure.Models.Profession;
+using BlacksmithCore.Infrastructure.SkillSystem;
+using BlacksmithCore.Infrastructure.SkillSystem.SkillDSL;
+using BlacksmithCore.Specific.BuiltInProfessions;
+
+namespace BlacksmithCore.BuiltInProfessions
+{
+    using DSL = BlacksmithDSL;
+    using Pen = Func<BlacksmithDSL.SourceFile, BlacksmithDSL.SourceFile>;
+    public partial class Common : SkillPackageDefinition
+    {
+        private static bool IronCheck(ISkillCheckContext sc) => true;
+        [HasResource]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Iron(ISkillExecuteContext sc)
+        {
+
+            Pen pen = sf => sf.WriteResource(1, ResourceType.Instance.Iron());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool StickCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 0.5f);
+        }
+        [HasAttack(1)]
+        [Labels(Impression.Conservative, Strength.Useless)]
+        private static IDSLSourceFile Stick(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(0.5f, ResourceType.Instance.Iron())
+                .WriteAttack(1, AttackType.Instance.Physical());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool DrillCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1.5f);
+        }
+        [HasAttack(3)]
+        [Labels(Impression.Conservative, Strength.Useless)]
+        private static IDSLSourceFile Drill(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(1.5f, ResourceType.Instance.Iron())
+                .WriteAttack(3, AttackType.Instance.Physical());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool SlashCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 2.5f);
+        }
+        [HasAttack(1)]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Slash(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(2.5f, ResourceType.Instance.Iron())
+                .WriteAttack(5, AttackType.Instance.Physical());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool ShieldCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), sc.SkillDeclareData.Param * 0.5f);
+        }
+        [HasDefense]
+        [Labels(Impression.Conservative, Strength.Useless)]
+        private static IDSLSourceFile Shield(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(sc.SkillDeclareData.Param * 0.5f, ResourceType.Instance.Iron())
+                .WriteDefense(new()
+                {
+                    Name = nameof(Shield),
+                    AnalyzerKey = nameof(StandardAnalyzers.DefaultReduction),
+                    Type = DefenseType.Instance.CommonReduction(),
+                    Power = 2 + sc.SkillDeclareData.Param,
+                    Clock = new()
+                });
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool ThornShieldCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1 + sc.SkillDeclareData.Param * 0.5f);
+        }
+        [HasDefense]
+        [Labels(Impression.Robust, Strength.Useless)]
+        private static IDSLSourceFile ThornShield(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(1 + sc.SkillDeclareData.Param * 0.5f, ResourceType.Instance.Iron())
+                .WriteDefense(new()
+                {
+                    Name = nameof(ThornShield),
+                    AnalyzerKey = nameof(StandardAnalyzers.ThornReduction),
+                    Type = DefenseType.Instance.ThornReduction(),
+                    Power = 4 + sc.SkillDeclareData.Param,
+                    Clock = new()
+                });
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool RecoveryCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1 + sc.SkillDeclareData.Param);
+        }
+        [HasRecovery]
+        [Labels(Impression.Conservative, Strength.Useless)]
+        private static IDSLSourceFile Recovery(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(1 + sc.SkillDeclareData.Param, ResourceType.Instance.Iron())
+                .GainHP(2 + 2 * sc.SkillDeclareData.Param);
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool SpaceCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
+        }
+        [HasResource]
+        [Labels(Impression.Robust, Strength.Strong)]
+        private static IDSLSourceFile Space(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(3, ResourceType.Instance.Iron())
+                .WriteResource(1, ResourceType.Instance.Space());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool TimeCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
+        }
+        [HasResource]
+        [Labels(Impression.Robust, Strength.Useless)]
+        private static IDSLSourceFile Time(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(3, ResourceType.Instance.Iron())
+                .WriteResource(1, ResourceType.Instance.Time());
+            return DSL.CreateBy(pen);
+        }
+
+        private static bool TearCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Space(), 1f);
+        }
+        [HasAttack(8)]
+        [Labels(Impression.Aggressive, Strength.Strong)]
+        private static IDSLSourceFile Tear(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(1, ResourceType.Instance.Space())
+                .WriteAttack(8, AttackType.Instance.Physical());
+            return DSL.CreateBy(pen);
+        }
+        private static bool ReflectCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Space(), 2f);
+        }
+        [HasDefense]
+        [HasBuff]
+        [Labels(Impression.Aggressive, Strength.Super)]
+        private static IDSLSourceFile Reflect(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(2, ResourceType.Instance.Space())
+                .RegistCallbackOnJudge(
+                    new()
+                    {
+                        new ModifierCallback()
+                        {
+                            AnalyzerKey = nameof(ReflectBeforeApplyingEffect),
+                            Stage = JudgeStage.Instance.OnApplyingEffect(),
+                            Clock = new(),
+                            ModifierOrder = ModifierOrder.Before
+                        },
+                        new ModifierCallback()
+                        {
+                            AnalyzerKey = nameof(ReflectAfterAttackCanceling),
+                            Stage = JudgeStage.Instance.OnAttackCanceling(),
+                            Clock = new(),
+                            ModifierOrder = ModifierOrder.After
+                        }
+                    });
+            return DSL.CreateBy(pen);
+        }
+        [IsAnalyzer(AnalyzerType.JudgeCallback)]
+        public static void ReflectBeforeApplyingEffect(Community player, Community enemy)
+        {
+            var playerAnalyzableDatas = player.Focus.Get<TurnContext>().Get<EffectAnalyzableData>();
+            var enemyAnalyzableDatas = enemy.Focus.Get<TurnContext>().Get<EffectAnalyzableData>();
+
+            var reflect = enemyAnalyzableDatas.Where(e => e.EffectEntity.TargetType == EffectTargetType.Instance.Enemy() || e.Clock.IsRinging).ToList();
+
+            enemyAnalyzableDatas.RemoveAll(reflect.Contains);
+
+            foreach (var e in reflect)
+            {
+                e.Clock.SetDelay(1);
+            }
+            playerAnalyzableDatas.AddRange(reflect);
+        }
+        [IsAnalyzer(AnalyzerType.JudgeCallback)]
+        public static void ReflectAfterAttackCanceling(Community player, Community enemy)
+        {
+            var tc = player.Focus.Get<TurnContext>();
+            var playerAnalyzableDatas = tc.Get<AttackAnalyzableData>();
+            var enemyAnalyzableDatas = enemy.Focus.Get<TurnContext>().Get<AttackAnalyzableData>();
+
+            var reflect = enemyAnalyzableDatas.Where(a => a.Clock.IsRinging).ToList();
+
+            enemyAnalyzableDatas.RemoveAll(reflect.Contains);
+
+            foreach (var a in reflect)
+            {
+                a.Clock.SetDelay(1);
+            }
+
+            foreach (var res in reflect)
+            {
+                tc.WriteAnalyzableData(res);
+            }
+        }
+
+        private static bool WarlockCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 1f);
+        }
+        [IsProfessionSkill]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Warlock(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(1, ResourceType.Instance.Iron())
+                .AddSkillPackageDefinition<Warlock>();
+            return DSL.CreateBy(pen);
+        }
+
+
+
+        private static bool CannonCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 4);
+        }
+        [IsProfessionSkill]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Cannon(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(4, ResourceType.Instance.Iron())
+                .WriteDefense(new()
+                {
+                    Name = nameof(Cannon),
+                    AnalyzerKey = nameof(StandardAnalyzers.DefaultReduction),
+                    Type = DefenseType.Instance.CommonReduction(),
+                    Power = 3,
+                    Clock = new()
+                })
+                .AddSkillPackageDefinition<Cannon>();
+            return DSL.CreateBy(pen);
+        }
+
+
+
+        private static bool DriverCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
+        }
+        [IsProfessionSkill]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Driver(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(3, ResourceType.Instance.Iron())
+                .AddSkillPackageDefinition<Driver>();
+            return DSL.CreateBy(pen);
+        }
+
+
+
+        private static bool BloodSigilCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 7);
+        }
+        [IsProfessionSkill]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile BloodSigil(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(7, ResourceType.Instance.Iron())
+                .AddSkillPackageDefinition<BloodSigil>(new HashSet<string>()
+                {
+                    nameof(Stick).ToLower(),
+                    nameof(Drill).ToLower(),
+                    nameof(Slash).ToLower(),
+                    nameof(Tear).ToLower()
+                })
+                .WriteFree(source =>
+                {
+                    source.Focus.Get<Health>().GainMHP(3);
+                    source.Focus.Get<Health>().GainHP(3);
+                });
+            return DSL.CreateBy(pen);
+        }
+
+
+        private static bool LancerCheck(ISkillCheckContext sc)
+        {
+            return sc.Self.Focus.Get<Resource>().Check(ResourceType.Instance.Iron(), 3);
+        }
+        [IsProfessionSkill]
+        [Labels(Impression.Robust, Strength.Ordinary)]
+        private static IDSLSourceFile Lancer(ISkillExecuteContext sc)
+        {
+            Pen pen = sf => sf
+                .UseResource(3, ResourceType.Instance.Iron())
+                .AddSkillPackageDefinition<Lancer>();
+            return DSL.CreateBy(pen);
+        }
+
+
+    }
+}

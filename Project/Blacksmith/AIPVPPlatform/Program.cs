@@ -1,8 +1,7 @@
-using AIPVPPlatform;
 using BlacksmithCore.AI;
 using BlacksmithCore.AI.Strategies;
-using BlacksmithCore.Infra.Utils;
-namespace BlacksmithClient
+using BlacksmithCore.Infrastructure.Loader;
+namespace AIPVPPlatform
 {
     public static class Program
     {

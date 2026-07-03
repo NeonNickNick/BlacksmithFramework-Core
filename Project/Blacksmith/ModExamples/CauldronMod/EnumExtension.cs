@@ -1,5 +1,4 @@
-using BlacksmithCore.Infra.Attributes.BlacksmithEnum;
-using BlacksmithCore.Infra.Models.Core;
+using BlacksmithCore.Infrastructure.Attributes.BlacksmithEnum;
 
 namespace ModExamples.CauldronMod
 {

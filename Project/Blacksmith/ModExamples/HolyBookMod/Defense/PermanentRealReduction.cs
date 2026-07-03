@@ -1,6 +1,4 @@
-using BlacksmithCore.Infra.Models.Components.AnalyzedObjects;
-using BlacksmithCore.Infra.Models.Core;
-using BlacksmithCore.Infra.Models.Entites;
+using BlacksmithCore.Infrastructure.Models.AnalyzableDatas;
 
 namespace ModExamples.HolyBookMod.Defense
 {
