@@ -376,9 +376,7 @@ namespace BlacksmithCore.Infrastructure.SkillSystem.SkillDSL
 
                 return WriteFree(source =>
                 {
-                    var effects = source.Focus.Get<Effect>().Effects;
-                    var marks = effects.FindAll(m => m.AnalyzerKey == markName);
-                    result = marks.Count;
+                    result = source.Focus.CountMark(markName);
                     isExecuted = true;
                 });
             }
