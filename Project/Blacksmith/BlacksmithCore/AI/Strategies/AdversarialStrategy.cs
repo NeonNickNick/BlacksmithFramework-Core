@@ -598,7 +598,13 @@ namespace BlacksmithCore.AI.Strategies
                     if (name != "magicattack" && name != "spaceattack" && i > 0)
                         break;
 
-                    var skillData = SkillDeclareData.Parse(i > 0 ? $"{name}(p:{i})" : name)!;
+                    var skillData = new SkillDeclareData()
+                    {
+                        SkillName = name,
+                        Param = i,
+                        StringParam = "",
+                        Next = null
+                    };//SkillDeclareData.Parse(i > 0 ? $"{name}(p:{i})" : name)!;
                     SkillDeclareResult r = actor.IsPlayer
                         ? instance.TryDeclare(skillData)
                         : instance.ETryDeclare(skillData);
