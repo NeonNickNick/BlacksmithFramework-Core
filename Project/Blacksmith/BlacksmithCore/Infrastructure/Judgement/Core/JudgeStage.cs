@@ -3,26 +3,26 @@ using BlacksmithCore.Infrastructure.Enum;
 
 namespace BlacksmithCore.Infrastructure.Judgement.Core
 {
-    public class JudgeStage : BlacksmithEnum<JudgeStage>
+    public partial class JudgeStage : BlacksmithEnum<JudgeStage>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue OnBegin() => GetCEValue();
+        public CEValue OnBegin() => _OnBegin_GetOrCreate();
         [IsBlacksmithEnumMember(8)]
-        public CEValue OnApplyingEffect() => GetCEValue();
+        public CEValue OnApplyingEffect() => _OnApplyingEffect_GetOrCreate();
         [IsBlacksmithEnumMember(16)]
-        public CEValue OnEffectTaking_AfterAnalyzableDataWritten() => GetCEValue();
+        public CEValue OnEffectTaking_AfterAnalyzableDataWritten() => _OnEffectTaking_AfterAnalyzableDataWritten_GetOrCreate();
         [IsBlacksmithEnumMember(32)]
-        public CEValue OnAttackCanceling() => GetCEValue();
+        public CEValue OnAttackCanceling() => _OnAttackCanceling_GetOrCreate();
 
         [IsBlacksmithEnumMember(64)]
-        public CEValue OnEffectTaking_AfterTransport() => GetCEValue();
+        public CEValue OnEffectTaking_AfterTransport() => _OnEffectTaking_AfterTransport_GetOrCreate();
         [IsBlacksmithEnumMember(128)]
-        public CEValue OnApplyingOthers() => GetCEValue();
+        public CEValue OnApplyingOthers() => _OnApplyingOthers_GetOrCreate();
         [IsBlacksmithEnumMember(256)]
-        public CEValue OnUpdating() => GetCEValue();
+        public CEValue OnUpdating() => _OnUpdating_GetOrCreate();
         [IsBlacksmithEnumMember(1024)]
-        public CEValue OnEffectTaking_AfterResult() => GetCEValue();
+        public CEValue OnEffectTaking_AfterResult() => _OnEffectTaking_AfterResult_GetOrCreate();
         [IsBlacksmithEnumMember(2048)]
-        public CEValue OnEnd() => GetCEValue();
+        public CEValue OnEnd() => _OnEnd_GetOrCreate();
     }
 }

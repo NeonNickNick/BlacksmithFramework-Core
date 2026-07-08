@@ -6,6 +6,6 @@ namespace ModExamples.WineGlassMod
     public static class ResourceExtension
     {
         [IsBlacksmithEnumMember(0)]
-        public static ResourceType.CEValue Wine(this ResourceType resourceType) => ResourceType.GetCEValue();
+        public static ResourceType.CEValue Wine(this ResourceType resourceType) => ResourceType.GetCEValue("Wine");
     }
 }

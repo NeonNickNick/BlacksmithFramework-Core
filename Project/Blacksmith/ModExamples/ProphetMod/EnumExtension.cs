@@ -6,8 +6,8 @@ namespace ModExamples.ProphetMod
     public static class ResourceExtension
     {
         [IsBlacksmithEnumMember(0)]
-        public static ResourceType.CEValue Crystal(this ResourceType resourceType) => ResourceType.GetCEValue();
+        public static ResourceType.CEValue Crystal(this ResourceType resourceType) => ResourceType.GetCEValue("Crystal");
         [IsBlacksmithEnumMember(0)]
-        public static ResourceType.CEValue CrystalBall(this ResourceType resourceType) => ResourceType.GetCEValue();
+        public static ResourceType.CEValue CrystalBall(this ResourceType resourceType) => ResourceType.GetCEValue("CrystalBall");
     }
 }

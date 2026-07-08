@@ -5,12 +5,12 @@ using BlacksmithCore.Infrastructure.Models.LifeCycle;
 
 namespace BlacksmithCore.Infrastructure.Models.AnalyzableDatas
 {
-    public class EffectTargetType : BlacksmithEnum<EffectTargetType>
+    public partial class EffectTargetType : BlacksmithEnum<EffectTargetType>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue Self() => GetCEValue();
+        public CEValue Self() => _Self_GetOrCreate();
         [IsBlacksmithEnumMember(8)]
-        public CEValue Enemy() => GetCEValue();
+        public CEValue Enemy() => _Enemy_GetOrCreate();
     }
     [IsManual]
     public partial class EffectAnalyzableData : IAnalyzableData

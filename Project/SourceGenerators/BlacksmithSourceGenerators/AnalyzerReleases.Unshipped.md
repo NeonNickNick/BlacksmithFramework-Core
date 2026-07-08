@@ -19,3 +19,4 @@ CLAP011 | ClapAnalyzableDataCopy | Error | AnalyzableDataCopyGenerator
 CLAP012 | ClapAnalyzableDataCopy | Error | AnalyzableDataCopyGenerator
 CLAP013 | ClapAnalyzableDataCopy | Error | AnalyzableDataCopyGenerator
 CLAP014 | ClapAnalyzableDataCopy | Error | AnalyzableDataCopyGenerator
+CLAP015 | ClapEnumCache | Error | BlacksmithEnumCacheGenerator

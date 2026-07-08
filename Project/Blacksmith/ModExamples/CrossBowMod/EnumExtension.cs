@@ -6,7 +6,7 @@ namespace ModExamples.CrossBowMod
     public static class ResourceExtension
     {
         [IsBlacksmithEnumMember(0)]
-        public static ResourceType.CEValue Bolt(this ResourceType resourceType) => ResourceType.GetCEValue();
+        public static ResourceType.CEValue Bolt(this ResourceType resourceType) => ResourceType.GetCEValue("Bolt");
     }
 
 }

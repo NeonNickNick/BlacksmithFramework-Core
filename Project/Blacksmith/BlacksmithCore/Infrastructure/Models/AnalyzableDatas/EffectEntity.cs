@@ -4,14 +4,14 @@ using BlacksmithCore.Infrastructure.Models.LifeCycle;
 
 namespace BlacksmithCore.Infrastructure.Models.AnalyzableDatas
 {
-    public class EffectType : BlacksmithEnum<EffectType>
+    public partial class EffectType : BlacksmithEnum<EffectType>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue AfterAnalyzableDataWritten() => GetCEValue();
+        public CEValue AfterAnalyzableDataWritten() => _AfterAnalyzableDataWritten_GetOrCreate();
         [IsBlacksmithEnumMember(8)]
-        public CEValue AfterTransport() => GetCEValue();
+        public CEValue AfterTransport() => _AfterTransport_GetOrCreate();
         [IsBlacksmithEnumMember(16)]
-        public CEValue AfterResult() => GetCEValue();
+        public CEValue AfterResult() => _AfterResult_GetOrCreate();
     }
     public partial class EffectEntity : IAnalyzableData
     {

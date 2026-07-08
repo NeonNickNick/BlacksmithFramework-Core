@@ -6,6 +6,6 @@ namespace ModExamples.MonkMod
     public static class ResourceExtension
     {
         [IsBlacksmithEnumMember(0)]
-        public static ResourceType.CEValue Jade(this ResourceType resourceType) => ResourceType.GetCEValue();
+        public static ResourceType.CEValue Jade(this ResourceType resourceType) => ResourceType.GetCEValue("Jade");
     }
 }

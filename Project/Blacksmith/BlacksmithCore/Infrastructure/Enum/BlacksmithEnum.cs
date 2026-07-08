@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using BlacksmithCore.Infrastructure.Attributes.BlacksmithEnum;
 
 namespace BlacksmithCore.Infrastructure.Enum
@@ -112,7 +111,7 @@ namespace BlacksmithCore.Infrastructure.Enum
         }
         private static readonly Dictionary<string, CEValue> _enumDict = new();
         public static IReadOnlyDictionary<string, CEValue> EnumDict => _enumDict;
-        public static CEValue GetCEValue([CallerMemberName] string name = "") => _enumDict[name];
+        public static CEValue GetCEValue(string name) => _enumDict[name];
     }
 
     /// <summary>

@@ -4,18 +4,18 @@ using BlacksmithCore.Infrastructure.Models.LifeCycle;
 
 namespace BlacksmithCore.Infrastructure.Models.AnalyzableDatas
 {
-    public class ResourceType : BlacksmithEnum<ResourceType>
+    public partial class ResourceType : BlacksmithEnum<ResourceType>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue Iron() => GetCEValue();
+        public CEValue Iron() => _Iron_GetOrCreate();
         [IsBlacksmithEnumMember(1)]
-        public CEValue Gold_Iron() => GetCEValue();
+        public CEValue Gold_Iron() => _Gold_Iron_GetOrCreate();
         [IsBlacksmithEnumMember(2)]
-        public CEValue Space() => GetCEValue();
+        public CEValue Space() => _Space_GetOrCreate();
         [IsBlacksmithEnumMember(3)]
-        public CEValue Time() => GetCEValue();
+        public CEValue Time() => _Time_GetOrCreate();
         [IsBlacksmithEnumMember(4)]
-        public CEValue Magic() => GetCEValue();
+        public CEValue Magic() => _Magic_GetOrCreate();
     }
     public partial class ResourceAnalyzableData : IAnalyzableData
     {

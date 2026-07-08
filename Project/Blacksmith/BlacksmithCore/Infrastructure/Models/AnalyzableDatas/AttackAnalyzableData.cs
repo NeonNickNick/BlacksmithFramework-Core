@@ -5,23 +5,23 @@ using BlacksmithCore.Infrastructure.Models.LifeCycle;
 
 namespace BlacksmithCore.Infrastructure.Models.AnalyzableDatas
 {
-    public class AttackType : BlacksmithEnum<AttackType>
+    public partial class AttackType : BlacksmithEnum<AttackType>
     {
         [IsBlacksmithEnumMember(256)]
-        public CEValue Physical() => GetCEValue();
+        public CEValue Physical() => _Physical_GetOrCreate();
         [IsBlacksmithEnumMember(128)]
-        public CEValue Magical() => GetCEValue();
+        public CEValue Magical() => _Magical_GetOrCreate();
         [IsBlacksmithEnumMember(0)]
-        public CEValue Real() => GetCEValue();
+        public CEValue Real() => _Real_GetOrCreate();
     }
-    public class AttackStage : BlacksmithEnum<AttackStage>
+    public partial class AttackStage : BlacksmithEnum<AttackStage>
     {
         [IsBlacksmithEnumMember(0)]
-        public CEValue OnHitArmorFirstTime() => GetCEValue();
+        public CEValue OnHitArmorFirstTime() => _OnHitArmorFirstTime_GetOrCreate();
         [IsBlacksmithEnumMember(1)]
-        public CEValue OnHitBody() => GetCEValue();
+        public CEValue OnHitBody() => _OnHitBody_GetOrCreate();
         [IsBlacksmithEnumMember(2)]
-        public CEValue OnEnd() => GetCEValue();
+        public CEValue OnEnd() => _OnEnd_GetOrCreate();
     }
     [IsManual]
     public partial class AttackAnalyzableData : IAnalyzableData

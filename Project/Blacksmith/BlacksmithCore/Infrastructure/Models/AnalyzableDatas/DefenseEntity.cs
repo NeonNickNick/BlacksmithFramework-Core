@@ -4,26 +4,26 @@ using BlacksmithCore.Infrastructure.Models.LifeCycle;
 using BlacksmithCore.Infrastructure.SkillSystem;
 namespace BlacksmithCore.Infrastructure.Models.AnalyzableDatas
 {
-    public class DefenseType : BlacksmithEnum<DefenseType>
+    public partial class DefenseType : BlacksmithEnum<DefenseType>
     {
         [IsBlacksmithEnumMember(-16)]
-        public DefenseType.CEValue PhysicalImmunity() => GetCEValue();
+        public DefenseType.CEValue PhysicalImmunity() => _PhysicalImmunity_GetOrCreate();
         [IsBlacksmithEnumMember(-16)]
-        public DefenseType.CEValue MagicalImmunity() => GetCEValue();
+        public DefenseType.CEValue MagicalImmunity() => _MagicalImmunity_GetOrCreate();
         [IsBlacksmithEnumMember(-8)]
-        public DefenseType.CEValue PercentageReduction() => GetCEValue();
+        public DefenseType.CEValue PercentageReduction() => _PercentageReduction_GetOrCreate();
         [IsBlacksmithEnumMember(0)]
-        public CEValue RealReduction() => GetCEValue();
+        public CEValue RealReduction() => _RealReduction_GetOrCreate();
         [IsBlacksmithEnumMember(8)]
-        public CEValue ThornReduction() => GetCEValue();
+        public CEValue ThornReduction() => _ThornReduction_GetOrCreate();
         [IsBlacksmithEnumMember(16)]
-        public CEValue CommonReduction() => GetCEValue();
+        public CEValue CommonReduction() => _CommonReduction_GetOrCreate();
         [IsBlacksmithEnumMember(32)]
-        public CEValue StoneShell() => GetCEValue();
+        public CEValue StoneShell() => _StoneShell_GetOrCreate();
         [IsBlacksmithEnumMember(64)]
-        public CEValue RealArmor() => GetCEValue();
+        public CEValue RealArmor() => _RealArmor_GetOrCreate();
         [IsBlacksmithEnumMember(128)]
-        public CEValue CommonArmor() => GetCEValue();
+        public CEValue CommonArmor() => _CommonArmor_GetOrCreate();
     }
     public partial class DefenseEntity : IAnalyzableData
     {
